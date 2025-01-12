@@ -29,6 +29,17 @@ WHISPER_MODEL=medium ENABLE_CUDA=true make example-stt
 
 ### `subtitleswindow`
 
+Run:
+```sh
+ENABLE_CUDA=true make example-subtitleswindow
+```
+It should start a window that automatically translates your speech (it listens the microphone):
+
+![Subtitles Window screenshot](./doc/subtitles_window_screenshot_0.png "Subtitles Window screenshot")
+
+
+If you need to translate a speech given an RTMP/RTSP/SRT/whatever link, then:
+
 Build:
 ```sh
 ENABLE_CUDA=true make subtitleswindow-linux-amd64
@@ -36,9 +47,7 @@ ENABLE_CUDA=true make subtitleswindow-linux-amd64
 
 Run:
 ```sh
-./build/subtitleswindow-linux-amd64 rtmp://my.server:1935/myapp/mystream/ thirdparty/whisper.cpp/models/ggml-medium.bin
+./build/subtitleswindow-linux-amd64 thirdparty/whisper.cpp/models/ggml-medium.bin rtmp://my.server:1935/myapp/mystream/
 ```
 
 A window will pop up, and you'll see that it displays the most recent transcriptions. You can add this window in OBS to have live translation of your speech on your stream screen:
-
-![Subtitles Window screenshot](./doc/subtitles_window_screenshot_0.png "Subtitles Window screenshot")

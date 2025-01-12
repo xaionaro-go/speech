@@ -9,38 +9,37 @@ import (
 	"github.com/facebookincubator/go-belt/tool/logger"
 	"github.com/xaionaro-go/audio/pkg/audio"
 	"github.com/xaionaro-go/observability"
-	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/whisper"
 )
 
-type speechStream struct {
-	cancelFunc       context.CancelFunc
-	audioReader      io.Reader
-	whisperClient    *whisper.SpeechToText
-	recognizerCloser io.Closer
-	wg               sync.WaitGroup
-	onceCloser       onceCloser
+type audioStreamCopier struct {
+	cancelFunc   context.CancelFunc
+	audioReader  io.Reader
+	audioWriter  io.Writer
+	playerCloser io.Closer
+	wg           sync.WaitGroup
+	onceCloser   onceCloser
 }
 
-var _ audio.Stream = (*speechStream)(nil)
+var _ audio.Stream = (*audioStreamCopier)(nil)
 
-func newSpeechStream(
+func newAudioStreamCopier(
 	ctx context.Context,
 	audioReader io.Reader,
-	whisperClient *whisper.SpeechToText,
-	recognizerCloser io.Closer,
-) *speechStream {
+	audioWriter io.Writer,
+	playerCloser io.Closer,
+) *audioStreamCopier {
 	ctx, cancelFunc := context.WithCancel(ctx)
-	s := &speechStream{
-		cancelFunc:       cancelFunc,
-		audioReader:      audioReader,
-		whisperClient:    whisperClient,
-		recognizerCloser: recognizerCloser,
+	s := &audioStreamCopier{
+		cancelFunc:   cancelFunc,
+		audioReader:  audioReader,
+		audioWriter:  audioWriter,
+		playerCloser: playerCloser,
 	}
 	s.init(ctx)
 	return s
 }
 
-func (s *speechStream) init(ctx context.Context) {
+func (s *audioStreamCopier) init(ctx context.Context) {
 	s.wg.Add(1)
 	observability.Go(ctx, func() {
 		defer s.wg.Done()
@@ -55,7 +54,7 @@ func (s *speechStream) init(ctx context.Context) {
 		}
 	})
 }
-func (s *speechStream) loop(ctx context.Context) (_err error) {
+func (s *audioStreamCopier) loop(ctx context.Context) (_err error) {
 	logger.Debugf(ctx, "loop()")
 	defer func() { logger.Debugf(ctx, "/loop(): %v", _err) }()
 
@@ -73,23 +72,26 @@ func (s *speechStream) loop(ctx context.Context) (_err error) {
 		msg := buf[:n]
 
 		logger.Tracef(ctx, "WriteAudio()")
-		err = s.whisperClient.WriteAudio(ctx, msg)
+		n, err = s.audioWriter.Write(msg)
 		logger.Tracef(ctx, "/WriteAudio(): %v", err)
 		if err != nil {
 			return fmt.Errorf("unable to write the audio to the whisper: %w", err)
 		}
+		if n != len(msg) {
+			return fmt.Errorf("written message is of invalid size: %d != %d", n, len(msg))
+		}
 	}
 }
 
-func (s *speechStream) Drain() error {
+func (s *audioStreamCopier) Drain() error {
 	return nil
 }
-func (s *speechStream) Close() error {
+func (s *audioStreamCopier) Close() error {
 	var err error
 	s.onceCloser.Do(func() {
 		logger.Debugf(context.TODO(), "Close")
 		s.cancelFunc()
-		err = s.recognizerCloser.Close()
+		err = s.playerCloser.Close()
 	})
 	return err
 }

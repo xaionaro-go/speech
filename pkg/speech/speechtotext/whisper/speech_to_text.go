@@ -117,6 +117,16 @@ func New(
 	return stt, nil
 }
 
+func isLikelyHallucination(s *whisper.Segment) bool {
+	t := strings.Trim(s.Text, " !.")
+	switch t {
+	case "Thank you for watching", "Thanks for watching",
+		"Bye":
+		return true
+	}
+	return false
+}
+
 func isHangingSegment(s *whisper.Segment) bool {
 	// Sometimes Whisper goes crazy and hangs while processing a specific audio,
 	// in this case it returns a lot of exclamation marks and nothing else
@@ -189,6 +199,9 @@ func (stt *SpeechToText) writeSegment(
 
 func containsAlphaNum(s string) bool {
 	return strings.ContainsFunc(s, func(r rune) bool {
+		if r == '-' {
+			return false
+		}
 		return unicode.IsLetter(r) || unicode.IsDigit(r)
 	})
 }
@@ -378,6 +391,10 @@ func (stt *SpeechToText) commitAudio(
 				lastCommittingSegmentIdx = i
 			}
 			hasHangingSegment = true
+			continue
+		}
+		if isLikelyHallucination(segment) {
+			logger.Debugf(ctx, "likely a hallucination, skipping")
 			continue
 		}
 		if stt.writeSegment(ctx, segment, i <= lastCommittingSegmentIdx) {

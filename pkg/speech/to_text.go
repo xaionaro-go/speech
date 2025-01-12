@@ -15,6 +15,9 @@ type Text string
 
 func (t Text) ContainsAlphaNum() bool {
 	return strings.ContainsFunc(string(t), func(r rune) bool {
+		if r == '-' {
+			return false
+		}
 		return unicode.IsLetter(r) || unicode.IsDigit(r)
 	})
 }

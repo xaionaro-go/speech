@@ -12,10 +12,7 @@ import (
 	"github.com/facebookincubator/go-belt/tool/logger"
 	"github.com/hashicorp/go-multierror"
 	syswhisper "github.com/mutablelogic/go-whisper/sys/whisper"
-	"github.com/xaionaro-go/audio/pkg/audio"
-	"github.com/xaionaro-go/audio/pkg/audio/resampler"
 	"github.com/xaionaro-go/observability"
-	"github.com/xaionaro-go/player/pkg/player/builtin"
 	"github.com/xaionaro-go/speech/pkg/speech"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/whisper"
 	"github.com/xaionaro-go/xsync"
@@ -37,15 +34,16 @@ type speechRecognizer struct {
 	cancelFunc   context.CancelFunc
 	renderLocker xsync.Gorex
 	window       *SubtitlesWindow
+	audioInput   io.Reader
 	whisper      *whisper.SpeechToText
 	subtitles    []subtitlePiece
 	onceCloser   onceCloser
 }
 
-var _ builtin.AudioRenderer = (*speechRecognizer)(nil)
-
+// audioInput is supposed to be PCM Float32LE 16000Hz 1ch
 func newSpeechRecognizer(
 	ctx context.Context,
+	audioInput io.Reader,
 	whisperModel []byte,
 	language speech.Language,
 	shouldTranslate bool,
@@ -68,27 +66,75 @@ func newSpeechRecognizer(
 		ctx:        ctx,
 		cancelFunc: cancelFn,
 		window:     window,
+		audioInput: audioInput,
 		whisper:    stt,
 	}
 	observability.Go(ctx, func() {
 		defer r.Close()
-		err := r.loop(ctx)
+		err := r.transcriptLoop(ctx)
 		if err != nil && err != context.Canceled {
 			select {
 			case <-ctx.Done():
 			default:
-				logger.Errorf(ctx, "loop is closed: %v", err)
+				logger.Errorf(ctx, "transcript loop is closed: %v", err)
+			}
+		}
+	})
+
+	observability.Go(ctx, func() {
+		defer r.Close()
+		err := r.audioWriterLoop(ctx)
+		if err != nil && err != context.Canceled {
+			select {
+			case <-ctx.Done():
+			default:
+				logger.Errorf(ctx, "audio writer loop is closed: %v", err)
 			}
 		}
 	})
 	return r, nil
 }
 
-func (r *speechRecognizer) loop(
+func (r *speechRecognizer) audioWriterLoop(
 	ctx context.Context,
 ) (_err error) {
-	logger.Debugf(ctx, "loop()")
-	defer func() { logger.Debugf(ctx, "/loop(): %v", _err) }()
+	logger.Debugf(ctx, "audioWriterLoop()")
+	defer func() { logger.Debugf(ctx, "/audioWriterLoop(): %v", _err) }()
+
+	buf := make([]byte, 1024*1024)
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		logger.Debugf(ctx, "audioWriterLoop(): reading audio")
+		n, err := r.audioInput.Read(buf)
+		logger.Debugf(ctx, "/audioWriterLoop(): reading audio: %v %v", n, err)
+		if err != nil {
+			return fmt.Errorf("unable to read: %w", err)
+		}
+		if n == len(buf) {
+			return fmt.Errorf("the message is too big: >=%d", len(buf))
+		}
+
+		msg := buf[:n]
+
+		logger.Debugf(ctx, "audioWriterLoop(): writing audio: %d", len(msg))
+		err = r.whisper.WriteAudio(ctx, msg)
+		logger.Debugf(ctx, "/audioWriterLoop(): writing audio: %v", err)
+		if err != nil {
+			return fmt.Errorf("unable to write audio of length %d to whisper: %w", len(msg), err)
+		}
+	}
+}
+
+func (r *speechRecognizer) transcriptLoop(
+	ctx context.Context,
+) (_err error) {
+	logger.Debugf(ctx, "transcriptLoop()")
+	defer func() { logger.Debugf(ctx, "/transcriptLoop(): %v", _err) }()
 
 	t := time.NewTicker(time.Second)
 	defer t.Stop()
@@ -167,40 +213,6 @@ func (r *speechRecognizer) render(
 		r.window.Container.Add(textObj)
 		r.window.Container.Refresh()
 	})
-}
-
-func (r *speechRecognizer) PlayPCM(
-	sampleRate audio.SampleRate,
-	channels audio.Channel,
-	format audio.PCMFormat,
-	bufferSize time.Duration,
-	reader io.Reader,
-) (audio.Stream, error) {
-	ctx := context.TODO()
-	logger.Debugf(ctx, "PlayPCM(%v, %v, %v, %v, reader)", sampleRate, channels, format, bufferSize)
-	requiredEncoding := r.whisper.AudioEncoding()
-	requiredPCMEncoding, ok := requiredEncoding.(audio.EncodingPCM)
-	if !ok {
-		return nil, fmt.Errorf("the transcriptor requires a non-PCM encoding: %#+v", requiredEncoding)
-	}
-
-	myFormat := resampler.Format{
-		Channels:   channels,
-		SampleRate: sampleRate,
-		PCMFormat:  format,
-	}
-	requiredFormat := resampler.Format{
-		Channels:   r.whisper.AudioChannels(),
-		SampleRate: requiredPCMEncoding.SampleRate,
-		PCMFormat:  requiredPCMEncoding.PCMFormat,
-	}
-
-	resampledReader, err := resampler.NewResampler(myFormat, reader, requiredFormat)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize a resampler from %#+v to %#+v: %w", myFormat, requiredFormat, err)
-	}
-
-	return newSpeechStream(r.ctx, resampledReader, r.whisper, r), nil
 }
 
 func (r *speechRecognizer) Close() error {

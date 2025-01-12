@@ -3,17 +3,24 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"time"
 
 	"fyne.io/fyne/v2/app"
 	"github.com/facebookincubator/go-belt"
 	"github.com/facebookincubator/go-belt/tool/logger"
 	"github.com/facebookincubator/go-belt/tool/logger/implementation/logrus"
 	"github.com/spf13/pflag"
+	"github.com/xaionaro-go/audio/pkg/audio"
+	_ "github.com/xaionaro-go/audio/pkg/audio/backends/oto"
+	_ "github.com/xaionaro-go/audio/pkg/audio/backends/pulseaudio"
 	"github.com/xaionaro-go/observability"
+	"github.com/xaionaro-go/player/pkg/player/builtin"
 	"github.com/xaionaro-go/speech/pkg/speech"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/whisper"
 	"github.com/xaionaro-go/speech/pkg/subtitleswindow"
 )
 
@@ -29,13 +36,19 @@ func main() {
 	langFlag := pflag.String("language", "en-US", "")
 	shouldTranslateFlag := pflag.Bool("translate", false, "")
 	netPprofAddr := pflag.String("net-pprof-listen-addr", "", "an address to listen for incoming net/pprof connections")
+	playbackFlag := pflag.Bool("audio-loopback", false, "[debug] instead of running a subtitles window, playback the audio")
 	pflag.Parse()
-	if pflag.NArg() != 2 {
-		syntaxExit("expected two arguments: media-URL whisper-model-path")
+	if pflag.NArg() < 1 || pflag.NArg() > 2 {
+		syntaxExit("expected one or two arguments: whisper-model-path [input]")
 	}
 
-	mediaURL := pflag.Arg(0)
-	whisperModelPath := pflag.Arg(1)
+	whisperModelPath := pflag.Arg(0)
+
+	var mediaURL string
+
+	if pflag.NArg() == 2 {
+		mediaURL = pflag.Arg(1)
+	}
 
 	l := logrus.Default().WithLevel(loggerLevel)
 	ctx := logger.CtxWithLogger(context.Background(), l)
@@ -53,8 +66,49 @@ func main() {
 		panic(err)
 	}
 
+	audioEnc := (*whisper.SpeechToText)(nil).AudioEncoding().(audio.EncodingPCM)
+	audioChannels := (*whisper.SpeechToText)(nil).AudioChannels()
+
+	var audioInput io.Reader
+	if mediaURL == "" {
+		r, w := io.Pipe()
+		recorder := audio.NewRecorderAuto(ctx)
+		logger.Infof(ctx, "using %T as the audio input", recorder.RecorderPCM)
+		stream, err := recorder.RecordPCM(audioEnc.SampleRate, audioChannels, audioEnc.PCMFormat, w)
+		if err != nil {
+			panic(err)
+		}
+		audioInput = r
+		defer func() {
+			stream.Close()
+		}()
+	} else {
+		rcv := subtitleswindow.NewDummyPCMPlayer(ctx)
+		mediaPlayer := builtin.New(ctx, nil, rcv)
+		logger.Debugf(ctx, "builtin.New(ctx, nil, rcv)")
+
+		err = mediaPlayer.OpenURL(ctx, mediaURL)
+		if err != nil {
+			panic(err)
+		}
+
+		audioInput = rcv
+	}
+
+	if *playbackFlag {
+		player := audio.NewPlayerAuto(ctx)
+		logger.Infof(ctx, "using %T as the audio output", player.PlayerPCM)
+		stream, err := player.PlayPCM(audioEnc.SampleRate, audioChannels, audioEnc.PCMFormat, time.Millisecond*100, audioInput)
+		if err != nil {
+			panic(err)
+		}
+		stream.Drain()
+		<-ctx.Done()
+		os.Exit(0)
+	}
+
 	app := app.New()
-	w, err := subtitleswindow.New(ctx, app, "Subtitles", mediaURL, whisperModel, speech.Language(*langFlag), *shouldTranslateFlag)
+	w, err := subtitleswindow.New(ctx, app, "Subtitles", audioInput, whisperModel, speech.Language(*langFlag), *shouldTranslateFlag)
 	if err != nil {
 		panic(err)
 	}

@@ -16,9 +16,9 @@ require (
 	github.com/mutablelogic/go-whisper v0.0.22-0.20241221210700-ba095bdd5196
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.10.0
-	github.com/xaionaro-go/audio v0.0.0-20250112132436-e89135189688
+	github.com/xaionaro-go/audio v0.0.0-20250112164406-5f5703997d03
 	github.com/xaionaro-go/observability v0.0.0-20250111142240-5d72f17a6d12
-	github.com/xaionaro-go/player v0.0.0-20250111155300-087e2c146e06
+	github.com/xaionaro-go/player v0.0.0-20250112171237-124c9f68a262
 	github.com/xaionaro-go/xsync v0.0.0-20250112014853-6c166ba9b463
 )
 
@@ -29,6 +29,8 @@ require (
 	github.com/asticode/go-astiav v0.30.0 // indirect
 	github.com/asticode/go-astikit v0.51.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/ebitengine/oto/v3 v3.3.2 // indirect
+	github.com/ebitengine/purego v0.8.0 // indirect
 	github.com/fredbi/uri v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fyne-io/gl-js v0.0.0-20220119005834-d2da28d9ccfe // indirect
@@ -50,6 +52,7 @@ require (
 	github.com/huandu/go-tls v0.0.0-20200109070953-6f75fb441850 // indirect
 	github.com/jeandeaual/go-locale v0.0.0-20240223122105-ce5225dcaa49 // indirect
 	github.com/jfreymuth/oggvorbis v1.0.5 // indirect
+	github.com/jfreymuth/pulse v0.1.1 // indirect
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	github.com/jsummers/gobmp v0.0.0-20151104160322-e2ba15ffa76e // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
