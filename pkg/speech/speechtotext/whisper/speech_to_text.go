@@ -191,6 +191,9 @@ func (stt *SpeechToText) writeSegmentNoLock(
 	case strings.HasPrefix(trimmedText, "(") && strings.HasSuffix(trimmedText, ")"):
 		// e.g.: (clicking)
 		return false
+	case strings.HasPrefix(trimmedText, "*") && strings.HasSuffix(trimmedText, "*"):
+		// e.g.: *thump*
+		return false
 	}
 
 	if s.SpeakerTurn {

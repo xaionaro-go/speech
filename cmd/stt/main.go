@@ -24,7 +24,7 @@ func syntaxExit(message string) {
 }
 
 func main() {
-	loggerLevel := logger.LevelDebug
+	loggerLevel := logger.LevelWarning
 	pflag.Var(&loggerLevel, "log-level", "Log level")
 	langFlag := pflag.String("language", "en-US", "")
 	alignmentAheadPresentFlag := whisper.AlignmentAheadsPreset(syswhisper.AlignmentAheadsPresetNone)

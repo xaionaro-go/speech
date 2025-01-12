@@ -126,5 +126,7 @@ subtitleswindow-windows-amd64: build deps
 
 example-stt: stt-$(shell go env GOOS)-$(shell go env GOARCH)
 	$(eval WHISPER_MODEL?=medium)
+	$(eval AUDIO_SOURCE_PATH?=)
 	cd ./thirdparty/whisper.cpp && ./models/download-ggml-model.sh "$(WHISPER_MODEL)"
-	arecord -f FLOAT_LE -c 1 -r 16000 | ./build/stt-$(shell go env GOOS)-$(shell go env GOARCH) --language en-US --translate=true --alignment-aheads-preset $(subst -,_,$(WHISPER_MODEL)) thirdparty/whisper.cpp/models/ggml-"$(WHISPER_MODEL)".bin | jq -r 'select(.IsFinal) | .Variants.[] | .Text'
+
+	( if [ "$(AUDIO_SOURCE_PATH)" = '' ]; then arecord -f FLOAT_LE -c 1 -r 16000; else cat "$(AUDIO_SOURCE_PATH)"; fi ) | ./build/stt-$(shell go env GOOS)-$(shell go env GOARCH) --language en-US --translate=true --alignment-aheads-preset $(subst -,_,$(WHISPER_MODEL)) thirdparty/whisper.cpp/models/ggml-"$(WHISPER_MODEL)".bin | jq -r 'select(.IsFinal) | .Variants.[] | .Text'
