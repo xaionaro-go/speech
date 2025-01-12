@@ -14,7 +14,7 @@ import (
 	syswhisper "github.com/mutablelogic/go-whisper/sys/whisper"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech"
-	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/whisper"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper"
 	"github.com/xaionaro-go/xsync"
 )
 
@@ -138,7 +138,7 @@ func (r *speechRecognizer) transcriptLoop(
 
 	t := time.NewTicker(time.Second)
 	defer t.Stop()
-	ch := r.whisper.OutputChan()
+	ch := r.whisper.OutputChanNoErr()
 	for {
 		select {
 		case <-t.C:

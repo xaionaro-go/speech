@@ -74,8 +74,10 @@ func (v *TranscriptVariant) EndTime() time.Duration {
 	return v.TranscriptTokens.EndTime()
 }
 
+type TranscriptVariants []TranscriptVariant
+
 type Transcript struct {
-	Variants        []TranscriptVariant
+	Variants        TranscriptVariants
 	Stability       float32
 	AudioChannelNum audio.Channel
 	Language        Language
@@ -84,8 +86,8 @@ type Transcript struct {
 
 type ToText interface {
 	io.Closer
-	AudioEncoding() audio.Encoding
-	AudioChannels() audio.Channel
+	AudioEncoding(context.Context) (audio.Encoding, error)
+	AudioChannels(context.Context) (audio.Channel, error)
 	WriteAudio(context.Context, []byte) error
-	OutputChan() <-chan *Transcript
+	OutputChan(context.Context) (<-chan *Transcript, error)
 }

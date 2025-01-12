@@ -1,0 +1,80 @@
+package goconv
+
+import (
+	"fmt"
+
+	"github.com/mutablelogic/go-whisper/sys/whisper"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/proto/go/speechtotext_grpc"
+)
+
+func AlignmentAheadsPresetFromGRPC(
+	p speechtotext_grpc.WhisperAlignmentAheadsPreset,
+) whisper.AlignmentAheadsPreset {
+	switch p {
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetNone:
+		return whisper.AlignmentAheadsPresetNone
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetNTopMost:
+		return whisper.AlignmentAheadsPresetNTopMost
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetCustom:
+		return whisper.AlignmentAheadsPresetCustom
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetTinyEn:
+		return whisper.AlignmentAheadsPresetTinyEn
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetTiny:
+		return whisper.AlignmentAheadsPresetTiny
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetBaseEn:
+		return whisper.AlignmentAheadsPresetBaseEn
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetBase:
+		return whisper.AlignmentAheadsPresetBase
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetSmallEn:
+		return whisper.AlignmentAheadsPresetSmallEn
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetSmall:
+		return whisper.AlignmentAheadsPresetSmall
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetMediumEn:
+		return whisper.AlignmentAheadsPresetMediumEn
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetMedium:
+		return whisper.AlignmentAheadsPresetMedium
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV1:
+		return whisper.AlignmentAheadsPresetLargeV1
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV2:
+		return whisper.AlignmentAheadsPresetLargeV2
+	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV3:
+		return whisper.AlignmentAheadsPresetLargeV3
+	}
+	panic(fmt.Errorf("unexpected value: %v", p))
+}
+
+func AlignmentAheadsPresetToGRPC(
+	p whisper.AlignmentAheadsPreset,
+) speechtotext_grpc.WhisperAlignmentAheadsPreset {
+	switch p {
+	case whisper.AlignmentAheadsPresetNone:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetNone
+	case whisper.AlignmentAheadsPresetNTopMost:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetNTopMost
+	case whisper.AlignmentAheadsPresetCustom:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetCustom
+	case whisper.AlignmentAheadsPresetTinyEn:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetTinyEn
+	case whisper.AlignmentAheadsPresetTiny:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetTiny
+	case whisper.AlignmentAheadsPresetBaseEn:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetBaseEn
+	case whisper.AlignmentAheadsPresetBase:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetBase
+	case whisper.AlignmentAheadsPresetSmallEn:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetSmallEn
+	case whisper.AlignmentAheadsPresetSmall:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetSmall
+	case whisper.AlignmentAheadsPresetMediumEn:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetMediumEn
+	case whisper.AlignmentAheadsPresetMedium:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetMedium
+	case whisper.AlignmentAheadsPresetLargeV1:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV1
+	case whisper.AlignmentAheadsPresetLargeV2:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV2
+	case whisper.AlignmentAheadsPresetLargeV3:
+		return speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV3
+	}
+	panic(fmt.Errorf("unexpected value: %v", p))
+}

@@ -2,6 +2,7 @@ package whisper
 
 import (
 	"context"
+	"crypto/sha1"
 	"fmt"
 	"strings"
 	"time"
@@ -79,6 +80,9 @@ func New(
 	whisper.Whisper_log_set(func(level whisper.LogLevel, text string) {
 		logger.FromCtx(ctx).Log(logLevelFromWhisper(level), text)
 	})
+
+	h := sha1.Sum(modelBytes)
+	logger.Debugf(ctx, "model SHA1: %X", h)
 
 	stt := &SpeechToText{
 		Context:  whisper.Whisper_init_from_buffer_with_params(modelBytes, params),
@@ -181,14 +185,22 @@ func (stt *SpeechToText) Close() error {
 	return nil
 }
 
-func (stt *SpeechToText) AudioEncoding() audio.Encoding {
+func (*SpeechToText) AudioEncoding(context.Context) (audio.Encoding, error) {
+	return (*SpeechToText)(nil).AudioEncodingNoErr(), nil
+}
+
+func (*SpeechToText) AudioChannels(context.Context) (audio.Channel, error) {
+	return (*SpeechToText)(nil).AudioChannelsNoErr(), nil
+}
+
+func (*SpeechToText) AudioEncodingNoErr() audio.Encoding {
 	return audio.EncodingPCM{
 		PCMFormat:  audio.PCMFormatFloat32LE,
 		SampleRate: 16000,
 	}
 }
 
-func (stt *SpeechToText) AudioChannels() audio.Channel {
+func (*SpeechToText) AudioChannelsNoErr() audio.Channel {
 	return 1
 }
 
@@ -266,7 +278,7 @@ func (stt *SpeechToText) writeSegmentNoLock(
 			Confidence:       0.5,
 		}},
 		Stability:       0,
-		AudioChannelNum: stt.AudioChannels(),
+		AudioChannelNum: stt.AudioChannelsNoErr(),
 		Language:        speech.Language(whisper.Whisper_lang_str(stt.Context.DefaultLangId())),
 		IsFinal:         isFinal,
 	}
@@ -473,7 +485,7 @@ func (stt *SpeechToText) commitAudio(
 
 func getDurationFromBytes(bytes uint64) time.Duration {
 	stt := (*SpeechToText)(nil)
-	return time.Duration(float64(time.Second) * float64(bytes) / float64(stt.AudioEncoding().BytesForSecond()))
+	return time.Duration(float64(time.Second) * float64(bytes) / float64(stt.AudioEncodingNoErr().BytesForSecond()))
 }
 
 func getBytesPosDiff(x time.Duration, baseBytes uint64) uint64 {
@@ -483,14 +495,18 @@ func getBytesPosDiff(x time.Duration, baseBytes uint64) uint64 {
 
 func getBytesPos(d time.Duration) uint64 {
 	stt := (*SpeechToText)(nil)
-	return stt.AudioEncoding().BytesForDuration(d) * uint64(stt.AudioChannels())
+	return stt.AudioEncodingNoErr().BytesForDuration(d) * uint64(stt.AudioChannelsNoErr())
 }
 
 func requiredSendingFrameSize() uint64 {
 	return getBytesPos(time.Second + time.Millisecond*100)
 }
 
-func (stt *SpeechToText) OutputChan() <-chan *speech.Transcript {
+func (stt *SpeechToText) OutputChan(context.Context) (<-chan *speech.Transcript, error) {
+	return stt.OutputChanNoErr(), nil
+}
+
+func (stt *SpeechToText) OutputChanNoErr() <-chan *speech.Transcript {
 	return stt.Out
 }
 

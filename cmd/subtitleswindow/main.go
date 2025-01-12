@@ -20,7 +20,7 @@ import (
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/player/pkg/player/builtin"
 	"github.com/xaionaro-go/speech/pkg/speech"
-	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/whisper"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper"
 	"github.com/xaionaro-go/speech/pkg/subtitleswindow"
 )
 
@@ -66,8 +66,8 @@ func main() {
 		panic(err)
 	}
 
-	audioEnc := (*whisper.SpeechToText)(nil).AudioEncoding().(audio.EncodingPCM)
-	audioChannels := (*whisper.SpeechToText)(nil).AudioChannels()
+	audioEnc := (*whisper.SpeechToText)(nil).AudioEncodingNoErr().(audio.EncodingPCM)
+	audioChannels := (*whisper.SpeechToText)(nil).AudioChannelsNoErr()
 
 	var audioInput io.Reader
 	if mediaURL == "" {

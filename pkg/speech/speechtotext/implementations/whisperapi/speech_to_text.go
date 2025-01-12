@@ -62,15 +62,15 @@ func New(
 	return stt
 }
 
-func (stt *SpeechToText) AudioEncoding() audio.Encoding {
+func (stt *SpeechToText) AudioEncoding(context.Context) (audio.Encoding, error) {
 	return audio.EncodingPCM{
 		PCMFormat:  audio.PCMFormatS16LE,
 		SampleRate: 16000,
-	}
+	}, nil
 }
 
-func (stt *SpeechToText) AudioChannels() audio.Channel {
-	return 1
+func (stt *SpeechToText) AudioChannels(context.Context) (audio.Channel, error) {
+	return 1, nil
 }
 
 func (stt *SpeechToText) loop(ctx context.Context) (_err error) {
@@ -123,8 +123,8 @@ func (stt *SpeechToText) WriteAudio(
 	return nil
 }
 
-func (stt *SpeechToText) OutputChan() <-chan *speech.Transcript {
-	return stt.resultQueue
+func (stt *SpeechToText) OutputChan(context.Context) (<-chan *speech.Transcript, error) {
+	return stt.resultQueue, nil
 }
 
 func (stt *SpeechToText) Close() error {

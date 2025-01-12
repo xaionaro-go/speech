@@ -1,5 +1,5 @@
 {
     "go.toolsEnvVars": {
-        "PKG_CONFIG_PATH": "${workspaceFolder}/pkg/speech/speechtotext/whisper/pkgconfig/"
+        "PKG_CONFIG_PATH": "${workspaceFolder}/pkg/speech/speechtotext/implementations/whisper/pkgconfig/"
     }
 }

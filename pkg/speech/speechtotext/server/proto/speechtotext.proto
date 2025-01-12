@@ -1,0 +1,98 @@
+syntax = "proto3";
+package speechtotext;
+option go_package = "go/speechtotext_grpc";
+
+service SpeechToText {
+    rpc Ping(PingRequest) returns (PingReply) {}
+    rpc NewContext(NewContextRequest) returns (stream NewContextReply) {}
+    rpc WriteAudio(stream WriteAudioRequest) returns (WriteAudioReply) {}
+    rpc OutputChan(OutputChanRequest) returns (stream OutputChanReply) {}
+}
+
+message PingRequest {
+    string payloadToReturn = 1;
+    string payloadToIgnore = 2;
+    int32 requestExtraPayloadSize = 3;
+}
+message PingReply {
+    string payload = 1;
+}
+
+enum WhisperSamplingStrategy {
+    WhisperSamplingStrategyUndefined = 0;
+    WhisperSamplingStrategyGreedy = 1;
+    WhisperSamplingStrategyBreamSearch = 2;
+}
+
+enum WhisperAlignmentAheadsPreset {
+    WhisperAlignmentAheadsPresetNone     = 0;
+	WhisperAlignmentAheadsPresetNTopMost = 1;
+	WhisperAlignmentAheadsPresetCustom   = 2;
+	WhisperAlignmentAheadsPresetTinyEn   = 3;
+	WhisperAlignmentAheadsPresetTiny     = 4;
+	WhisperAlignmentAheadsPresetBaseEn   = 5;
+	WhisperAlignmentAheadsPresetBase     = 6;
+	WhisperAlignmentAheadsPresetSmallEn  = 7;
+	WhisperAlignmentAheadsPresetSmall    = 9;
+	WhisperAlignmentAheadsPresetMediumEn = 10;
+	WhisperAlignmentAheadsPresetMedium   = 11;
+	WhisperAlignmentAheadsPresetLargeV1  = 12;
+	WhisperAlignmentAheadsPresetLargeV2  = 13;
+	WhisperAlignmentAheadsPresetLargeV3  = 14;
+}
+
+message WhisperOptions {
+    WhisperSamplingStrategy samplingStrategy = 3;
+	WhisperAlignmentAheadsPreset alignmentAheadsPreset = 5;
+}
+
+message NewContextRequest {
+	bytes modelBytes = 1;
+    string language = 2;
+	bool shouldTranslate = 3;
+	oneof Backend {
+		WhisperOptions whisper = 4;
+	};
+}
+
+message NewContextReply {
+	uint64 contextID = 1;
+}
+
+message WriteAudioRequest {
+	uint64 contextID = 1;
+	bytes audio = 2;
+}
+message WriteAudioReply {}
+
+message OutputChanRequest {
+	uint64 contextID = 1;
+}
+message OutputChanReply {
+    Transcript transcript = 1;
+}
+
+message Transcript {
+    repeated TranscriptVariant variants = 1;
+	float stability = 2;
+	uint32 audioChannelNum = 3;
+	string language = 4;
+	bool isFinal = 5;
+}
+
+message TranscriptVariant {
+	string text = 1;
+	repeated TranscriptToken transcriptTokens = 2;
+	float confidence = 3;
+}
+
+message TranscriptToken {
+	int64 startTimeNano = 1;
+	int64 endTimeNano = 2;
+	string text = 3;
+	float confidence = 4;
+	string Speaker = 5;
+}
+
+message CloseContextRequest {}
+message CloseContextReply {}

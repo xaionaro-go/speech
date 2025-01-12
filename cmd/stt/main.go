@@ -14,7 +14,10 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech"
-	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/whisper"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/client"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/goconv"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/proto/go/speechtotext_grpc"
 )
 
 func syntaxExit(message string) {
@@ -30,9 +33,10 @@ func main() {
 	alignmentAheadPresentFlag := whisper.AlignmentAheadsPreset(syswhisper.AlignmentAheadsPresetNone)
 	pflag.Var(&alignmentAheadPresentFlag, "alignment-aheads-preset", "")
 	gpuFlag := pflag.Int("gpu", -1, "")
+	remoteFlag := pflag.String("remote-addr", "", "use a remote speech-to-text engine, instead of running it locally")
 	shouldTranslateFlag := pflag.Bool("translate", false, "")
 	printTimestampsFlag := pflag.Bool("print-timestamps", false, "")
-	printProbabilitiesFlag := pflag.Bool("print-probabilities", false, "")
+	printConfidencesFlag := pflag.Bool("print-confidences", false, "")
 	pflag.Parse()
 	if pflag.NArg() != 1 {
 		syntaxExit("expected one argument (whisper model path)")
@@ -57,26 +61,46 @@ func main() {
 		opts = append(opts, whisper.OptionGPUDeviceID(*gpuFlag))
 	}
 
-	stt, err := whisper.New(
-		ctx,
-		whisperModel,
-		speech.Language(*langFlag),
-		whisper.SamplingStrategyGreedy,
-		*shouldTranslateFlag,
-		syswhisper.AlignmentAheadsPreset(alignmentAheadPresentFlag),
-		opts...,
-	)
+	var stt speech.ToText
+	if *remoteFlag != "" {
+		stt, err = client.New(ctx, *remoteFlag, &speechtotext_grpc.NewContextRequest{
+			ModelBytes:      whisperModel,
+			Language:        *langFlag,
+			ShouldTranslate: *shouldTranslateFlag,
+			Backend: &speechtotext_grpc.NewContextRequest_Whisper{
+				Whisper: &speechtotext_grpc.WhisperOptions{
+					SamplingStrategy:      goconv.SamplingStrategyToGRPC(whisper.SamplingStrategyGreedy),
+					AlignmentAheadsPreset: goconv.AlignmentAheadsPresetToGRPC(syswhisper.AlignmentAheadsPreset(alignmentAheadPresentFlag)),
+				},
+			},
+		})
+	} else {
+		stt, err = whisper.New(
+			ctx,
+			whisperModel,
+			speech.Language(*langFlag),
+			whisper.SamplingStrategyGreedy,
+			*shouldTranslateFlag,
+			syswhisper.AlignmentAheadsPreset(alignmentAheadPresentFlag),
+			opts...,
+		)
+	}
 	if err != nil {
 		logger.Fatal(ctx, err)
 	}
 	defer stt.Close()
 	logger.Infof(ctx, "initialized a Speech-To-Text engine")
 
+	ch, err := stt.OutputChan(ctx)
+	if err != nil {
+		logger.Fatal(ctx, err)
+	}
+
 	observability.Go(ctx, func() {
 		defer logger.Infof(ctx, "stopped reader")
 		logger.Infof(ctx, "started reader")
 		previousMessageLength := 0
-		for t := range stt.OutputChan() {
+		for t := range ch {
 			variant := t.Variants[0]
 			fmt.Printf("\r%s", strings.Repeat(" ", previousMessageLength))
 			text := strings.ReplaceAll(string(variant.Text), "\n", "|")
@@ -88,7 +112,7 @@ func main() {
 					text,
 				)
 			}
-			if *printProbabilitiesFlag {
+			if *printConfidencesFlag {
 				var probs []string
 				for _, token := range variant.TranscriptTokens {
 					probs = append(probs, fmt.Sprintf("%f", token.Confidence))

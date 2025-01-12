@@ -10,7 +10,7 @@ import (
 	"github.com/xaionaro-go/audio/pkg/audio"
 	"github.com/xaionaro-go/audio/pkg/audio/resampler"
 	"github.com/xaionaro-go/player/pkg/player/builtin"
-	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/whisper"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper"
 )
 
 type dummyPCMPlayer struct {
@@ -40,7 +40,7 @@ func (r *dummyPCMPlayer) PlayPCM(
 ) (audio.PlayStream, error) {
 	ctx := context.TODO()
 	logger.Debugf(ctx, "PlayPCM(%v, %v, %v, %v, reader)", sampleRate, channels, format, bufferSize)
-	requiredEncoding := (*whisper.SpeechToText)(nil).AudioEncoding()
+	requiredEncoding := (*whisper.SpeechToText)(nil).AudioEncodingNoErr()
 	requiredPCMEncoding, ok := requiredEncoding.(audio.EncodingPCM)
 	if !ok {
 		return nil, fmt.Errorf("the transcriptor requires a non-PCM encoding: %#+v", requiredEncoding)
@@ -52,7 +52,7 @@ func (r *dummyPCMPlayer) PlayPCM(
 		PCMFormat:  format,
 	}
 	requiredFormat := resampler.Format{
-		Channels:   (*whisper.SpeechToText)(nil).AudioChannels(),
+		Channels:   (*whisper.SpeechToText)(nil).AudioChannelsNoErr(),
 		SampleRate: requiredPCMEncoding.SampleRate,
 		PCMFormat:  requiredPCMEncoding.PCMFormat,
 	}

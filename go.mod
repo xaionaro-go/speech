@@ -19,7 +19,10 @@ require (
 	github.com/xaionaro-go/audio v0.0.0-20250112164406-5f5703997d03
 	github.com/xaionaro-go/observability v0.0.0-20250111142240-5d72f17a6d12
 	github.com/xaionaro-go/player v0.0.0-20250112171237-124c9f68a262
+	github.com/xaionaro-go/xslices v0.0.0-20250112205724-cca15bd049b6
 	github.com/xaionaro-go/xsync v0.0.0-20250112014853-6c166ba9b463
+	google.golang.org/grpc v1.69.2
+	google.golang.org/protobuf v1.36.2
 )
 
 require (
@@ -78,6 +81,7 @@ require (
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250106144421-5f5ef82da422 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )

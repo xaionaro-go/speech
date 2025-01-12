@@ -73,7 +73,7 @@ LINKER_FLAGS_DARWIN?=$(LINKER_FLAGS)
 LINKER_FLAGS_LINUX?=$(LINKER_FLAGS)
 LINKER_FLAGS_WINDOWS?=$(LINKER_FLAGS) '-extldflags=$(WINDOWS_EXTLINKER_FLAGS)'
 
-WINDOWS_PKG_CONFIG_PATH?=
+PKG_CONFIG_PATH?="$(PWD)"/pkg/speech/speechtotext/implementations/whisper/pkgconfig/
 WINDOWS_CGO_FLAGS?=
 
 ifeq ($(GOVERSION_GE_1_23),true) # see https://github.com/wlynxg/anet/?tab=readme-ov-file#how-to-build-with-go-1230-or-later
@@ -95,10 +95,10 @@ priv/android-apk.keystore:
 signer-sign-streampanel-arm64-apk: priv/android-apk.keystore
 	jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 -keystore priv/android-apk.keystore build/streampanel-arm64.apk streampanel
 
-deps: thirdparty/whisper.cpp/CMakeLists.txt pkg/speech/speechtotext/whisper/pkgconfig/libwhisper.pc thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI)
+deps: thirdparty/whisper.cpp/CMakeLists.txt pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI)
 
-pkg/speech/speechtotext/whisper/pkgconfig/libwhisper.pc:
-	go generate ./pkg/speech/speechtotext/whisper/pkgconfig/...
+pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc:
+	go generate ./pkg/speech/speechtotext/implementations/whisper/pkgconfig/...
 
 thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI):
 	mkdir -p thirdparty/whisper.cpp/build thirdparty/whisper.cpp/examples/whisper.android.java/app/src/main/jni/whisper/build
@@ -107,24 +107,30 @@ thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABL
 	rm -f thirdparty/whisper.cpp/build/libwhisper-ready*
 	touch thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)
 
+
+sttd-linux-amd64: build deps
+	$(eval INSTALL_DEST?=build/sttd-linux-amd64)
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_LINUX)" -o "$(INSTALL_DEST)" ./cmd/sttd
+	$(eval undefine INSTALL_DEST)
+
 stt-linux-amd64: build deps
 	$(eval INSTALL_DEST?=build/stt-linux-amd64)
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_LINUX)" -o "$(INSTALL_DEST)" ./cmd/stt
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_LINUX)" -o "$(INSTALL_DEST)" ./cmd/stt
 	$(eval undefine INSTALL_DEST)
 
 stt-windows-amd64: build deps
 	$(eval INSTALL_DEST?=build/stt-windows-amd64.exe)
-	PKG_CONFIG_PATH=$(WINDOWS_PKG_CONFIG_PATH) CGO_ENABLED=1 CGO_LDFLAGS="-static" CGO_CFLAGS="$(WINDOWS_CGO_FLAGS)" CC=x86_64-w64-mingw32-gcc GOOS=windows go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_WINDOWS)" -o "$(INSTALL_DEST)" ./cmd/stt
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) CGO_ENABLED=1 CGO_LDFLAGS="-static" CGO_CFLAGS="$(WINDOWS_CGO_FLAGS)" CC=x86_64-w64-mingw32-gcc GOOS=windows go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_WINDOWS)" -o "$(INSTALL_DEST)" ./cmd/stt
 	$(eval undefine INSTALL_DEST)
 
 subtitleswindow-linux-amd64: build deps
 	$(eval INSTALL_DEST?=build/subtitleswindow-linux-amd64)
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_LINUX)" -o "$(INSTALL_DEST)" ./cmd/subtitleswindow
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_LINUX)" -o "$(INSTALL_DEST)" ./cmd/subtitleswindow
 	$(eval undefine INSTALL_DEST)
 
 subtitleswindow-windows-amd64: build deps
 	$(eval INSTALL_DEST?=build/subtitleswindow-windows-amd64.exe)
-	PKG_CONFIG_PATH=$(WINDOWS_PKG_CONFIG_PATH) CGO_ENABLED=1 CGO_LDFLAGS="-static" CGO_CFLAGS="$(WINDOWS_CGO_FLAGS)" CC=x86_64-w64-mingw32-gcc GOOS=windows go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_WINDOWS)" -o "$(INSTALL_DEST)" ./cmd/subtitleswindow
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) CGO_ENABLED=1 CGO_LDFLAGS="-static" CGO_CFLAGS="$(WINDOWS_CGO_FLAGS)" CC=x86_64-w64-mingw32-gcc GOOS=windows go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_WINDOWS)" -o "$(INSTALL_DEST)" ./cmd/subtitleswindow
 	$(eval undefine INSTALL_DEST)
 
 example-stt: stt-$(shell go env GOOS)-$(shell go env GOARCH)
