@@ -1,0 +1,7 @@
+prefix=/home/streaming/go/src/github.com/xaionaro-go/speech/thirdparty/whisper.cpp
+
+Name: libwhisper-linux.pc
+Description: No description
+Version: 0.0.0
+Cflags: -fopenmp
+Libs: -L${prefix}/build/ggml/src -L${prefix}/build/src -lwhisper -lggml -lggml-base -lggml-cpu -lgomp -lm -lstdc++
