@@ -1,12 +1,14 @@
 # `speech`
 
-This is a library for Speech-To-Text operations in Go
+This is a library for Speech-To-Text operations in Go, and 2 tools to demonstrate how to use it:
+* [`./cmd/stt`](./cmd/stt/main.go) -- just converts a PCM_F32_LE stream into transcription (by default translated to English).
+* [`./cmd/subtitleswindow/main.go`](./cmd/subtitleswindow/main.go) -- is a window that dynamically displays subtitles to be used in OBS, given a link to the audio stream (e.g. your RTMP link).
 
 Currently, we provide API for using Whisper directly and/or for using whisper via HTTP API.
 
-An example how to use Whisper directly is provided in [`./cmd/stt`](./cmd/stt/main.go).
-
 # Quick start
+
+### `stt`
 
 If you use Linux:
 ```sh
@@ -24,3 +26,19 @@ WHISPER_MODEL=medium ENABLE_CUDA=true make example-stt
      28s -    30.6s:  This is just a demonstration that the thing works properly.
    30.7s -    37.9s:  And somehow it does work properly, which is weird.
 ```
+
+### `subtitleswindow`
+
+Build:
+```sh
+ENABLE_CUDA=true make subtitleswindow-linux-amd64
+```
+
+Run:
+```sh
+./build/subtitleswindow-linux-amd64 rtmp://my.server:1935/myapp/mystream/ thirdparty/whisper.cpp/models/ggml-medium.bin
+```
+
+A window will pop up, and you'll see that it displays the most recent transcriptions. You can add this window in OBS to have live translation of your speech on your stream screen:
+
+![Subtitles Window screenshot](./doc/subtitles_window_screenshot_0.png "Subtitles Window screenshot")

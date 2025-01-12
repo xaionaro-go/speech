@@ -27,8 +27,9 @@ const (
 )
 
 type subtitlePiece struct {
-	TS   time.Time
-	Text string
+	TS      time.Time
+	Text    string
+	IsFinal bool
 }
 
 type speechRecognizer struct {
@@ -121,15 +122,23 @@ func (r *speechRecognizer) addTranscript(
 		return fmt.Errorf("no variants provided")
 	}
 	r.renderLocker.Do(ctx, func() {
-		text := transcript.Variants[0].Text
-
-		if len(r.subtitles) >= maxLines {
-			r.subtitles = r.subtitles[1:]
+		variant := transcript.Variants[0]
+		text := variant.Text
+		resultingPiece := subtitlePiece{
+			TS:      time.Now(),
+			Text:    string(text),
+			IsFinal: transcript.IsFinal,
 		}
-		r.subtitles = append(r.subtitles, subtitlePiece{
-			TS:   time.Now(),
-			Text: string(text),
-		})
+
+		if len(r.subtitles) > 0 && !r.subtitles[len(r.subtitles)-1].IsFinal {
+			r.subtitles[len(r.subtitles)-1] = resultingPiece
+		} else {
+			if len(r.subtitles) >= maxLines {
+				r.subtitles = r.subtitles[1:]
+			}
+			r.subtitles = append(r.subtitles, resultingPiece)
+		}
+
 		r.render(ctx)
 	})
 
