@@ -9,5 +9,6 @@ An example how to use Whisper directly is provided in [`./cmd/stt`](./cmd/stt/ma
 # Quick start
 
 ```sh
-WHISPER_MODEL=large-v3 ENABLE_CUDA=true make example-stt
+WHISPER_MODEL=medium ENABLE_CUDA=true make example-stt
 ```
+(keep in mind: the larger model is the more time it takes to warm up)
