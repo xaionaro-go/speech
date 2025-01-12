@@ -14,7 +14,10 @@ import (
 	syswhisper "github.com/mutablelogic/go-whisper/sys/whisper"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/client"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/goconv"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/proto/go/speechtotext_grpc"
 	"github.com/xaionaro-go/xsync"
 )
 
@@ -35,7 +38,7 @@ type speechRecognizer struct {
 	renderLocker xsync.Gorex
 	window       *SubtitlesWindow
 	audioInput   io.Reader
-	whisper      *whisper.SpeechToText
+	whisper      speech.ToText
 	subtitles    []subtitlePiece
 	onceCloser   onceCloser
 }
@@ -44,19 +47,41 @@ type speechRecognizer struct {
 func newSpeechRecognizer(
 	ctx context.Context,
 	audioInput io.Reader,
+	remoteAddrWhisper string,
 	whisperModel []byte,
 	language speech.Language,
 	shouldTranslate bool,
 	window *SubtitlesWindow,
 ) (*speechRecognizer, error) {
-	stt, err := whisper.New(
-		ctx,
-		whisperModel,
-		language,
-		whisper.SamplingStrategyBreamSearch,
-		shouldTranslate,
-		syswhisper.AlignmentAheadsPresetNone,
+	var (
+		stt speech.ToText
+		err error
 	)
+	if remoteAddrWhisper == "" {
+		logger.Debugf(ctx, "initializing a local context")
+		stt, err = whisper.New(
+			ctx,
+			whisperModel,
+			language,
+			whisper.SamplingStrategyBreamSearch,
+			shouldTranslate,
+			syswhisper.AlignmentAheadsPresetNone,
+		)
+	} else {
+		logger.Debugf(ctx, "initializing a remote context")
+		logger.Debugf(ctx, "initializing a remote context")
+		stt, err = client.New(ctx, remoteAddrWhisper, &speechtotext_grpc.NewContextRequest{
+			ModelBytes:      whisperModel,
+			Language:        string(language),
+			ShouldTranslate: shouldTranslate,
+			Backend: &speechtotext_grpc.NewContextRequest_Whisper{
+				Whisper: &speechtotext_grpc.WhisperOptions{
+					SamplingStrategy:      goconv.SamplingStrategyToGRPC(whisper.SamplingStrategyGreedy),
+					AlignmentAheadsPreset: goconv.AlignmentAheadsPresetToGRPC(syswhisper.AlignmentAheadsPreset(syswhisper.AlignmentAheadsPresetNone)),
+				},
+			},
+		})
+	}
 	if err != nil {
 		return nil, fmt.Errorf("whisper.New: %w", err)
 	}
@@ -138,7 +163,10 @@ func (r *speechRecognizer) transcriptLoop(
 
 	t := time.NewTicker(time.Second)
 	defer t.Stop()
-	ch := r.whisper.OutputChanNoErr()
+	ch, err := r.whisper.OutputChan(ctx)
+	if err != nil {
+		return fmt.Errorf("unable to get the output chan: %w", err)
+	}
 	for {
 		select {
 		case <-t.C:

@@ -50,11 +50,14 @@ type Server struct {
 	STTInitCacheSize   uint
 	STTInitCacheLocker xsync.Mutex
 	STTInitCache       *lru.Cache[objectHash, speech.ToText]
+
+	DefaultModel []byte
 }
 
 type objectHash [64 + sha512.Size]byte
 
 func NewServer(
+	defaultModel []byte,
 	contextsLimit uint,
 	cacheSize uint,
 	opts ...Option,
@@ -63,6 +66,8 @@ func NewServer(
 		GRPCServer:    grpc.NewServer(grpc.MaxRecvMsgSize(consts.MaxMessageSize)),
 		ContextsLimit: contextsLimit,
 		Options:       opts,
+
+		DefaultModel: defaultModel,
 
 		STTInitCacheSize: cacheSize,
 	}
@@ -140,8 +145,11 @@ func (srv *Server) NewContext(
 	}
 
 	modelBytes := req.GetModelBytes()
-	var requestHash objectHash
+	if len(modelBytes) == 0 {
+		modelBytes = srv.DefaultModel
+	}
 
+	var requestHash objectHash
 	if srv.STTInitCacheSize > 0 {
 		logger.Debugf(ctx, "calculating the hash of the request")
 		req.ModelBytes = nil

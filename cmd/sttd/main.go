@@ -30,6 +30,7 @@ func main() {
 	contextsFlag := pflag.Uint("contexts", 1, "")
 	cacheContextsFlag := pflag.Uint("cache-contexts", 0, "")
 	netPprofAddr := pflag.String("net-pprof-listen-addr", "", "an address to listen for incoming net/pprof connections")
+	defaultModelFlag := pflag.String("default-model-file", "", "")
 	pflag.Parse()
 	if pflag.NArg() != 1 {
 		syntaxExit("expected one argument (bind address)")
@@ -58,7 +59,17 @@ func main() {
 	}
 	opts = append(opts, whisper.OptionUseGPU(*useGPUFlag))
 
-	srv := server.NewServer(*contextsFlag, *cacheContextsFlag, server.OptionWhisperOptions(opts))
+	var defaultModel []byte
+
+	if *defaultModelFlag != "" {
+		var err error
+		defaultModel, err = os.ReadFile(*defaultModelFlag)
+		if err != nil {
+			logger.Fatal(ctx, err)
+		}
+	}
+
+	srv := server.NewServer(defaultModel, *contextsFlag, *cacheContextsFlag, server.OptionWhisperOptions(opts))
 
 	logger.Infof(ctx, "started at %v", listener.Addr())
 	err = srv.Serve(ctx, listener)

@@ -573,7 +573,7 @@ func getBytesPos(d time.Duration) uint64 {
 }
 
 func requiredSendingFrameSize() uint64 {
-	return getBytesPos(time.Second + time.Millisecond*100)
+	return getBytesPos(2 * time.Second)
 }
 
 func (stt *SpeechToText) OutputChan(context.Context) (<-chan *speech.Transcript, error) {

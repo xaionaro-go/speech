@@ -62,9 +62,13 @@ func main() {
 		observability.Go(ctx, func() { l.Error(http.ListenAndServe(*netPprofAddr, nil)) })
 	}
 
-	whisperModel, err := os.ReadFile(whisperModelPath)
-	if err != nil {
-		logger.Fatal(ctx, err)
+	var whisperModel []byte
+	if *remoteFlag == "" || whisperModelPath != "" {
+		var err error
+		whisperModel, err = os.ReadFile(whisperModelPath)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	var opts whisper.Options
@@ -73,7 +77,10 @@ func main() {
 	}
 	opts = append(opts, whisper.OptionUseGPU(*useGPUFlag))
 
-	var stt speech.ToText
+	var (
+		stt speech.ToText
+		err error
+	)
 	if *remoteFlag != "" {
 		logger.Debugf(ctx, "initializing a remote context")
 		stt, err = client.New(ctx, *remoteFlag, &speechtotext_grpc.NewContextRequest{

@@ -51,3 +51,18 @@ Run:
 ```
 
 A window will pop up, and you'll see that it displays the most recent transcriptions. You can add this window in OBS to have live translation of your speech on your stream screen:
+
+### `subtitleswindow` with computing on a remote server
+
+On the remote server run:
+```sh
+ENABLE_CUDA=true make sttd-linux-amd64
+./build/sttd-linux-amd64 --log-level trace 0.0.0.0:1234 --default-model-file thirdparty/whisper.cpp/models/ggml-large-v3.bin
+```
+
+Now on your local computer run:
+```sh
+make subtitleswindow-linux-amd64
+./build/subtitleswindow-linux-amd64 --remote-addr address-of-my-remote-server:1234 --translate=true --language en-US ''
+```
+
