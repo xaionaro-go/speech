@@ -1,4 +1,4 @@
-# `speech` [WORK-IN-PROGRESS]
+# `speech`
 
 This is a library for Speech-To-Text operations in Go
 
@@ -9,5 +9,5 @@ An example how to use Whisper directly is provided in [`./cmd/stt`](./cmd/stt/ma
 # Quick start
 
 ```sh
-ENABLE_CUDA=true make example-stt
+WHISPER_MODEL=large-v3 ENABLE_CUDA=true make example-stt
 ```

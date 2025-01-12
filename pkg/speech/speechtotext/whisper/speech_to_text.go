@@ -22,9 +22,11 @@ import (
 import "C"
 
 const (
-	BufferLimit       = 120 * time.Second
-	GapToCommit       = 2 * time.Second
-	IterationInterval = time.Second
+	BufferLimit                              = 120 * time.Second
+	GapToCommit                              = 2 * time.Second
+	DiscardIfNoUsefulSegmentsIterations      = 4
+	DiscardFromSingleIterationIfBufferBigger = 10 * time.Second
+	IterationInterval                        = time.Second
 )
 
 type SpeechToText struct {
@@ -45,6 +47,9 @@ type SpeechToText struct {
 	CommitAudioError       error
 
 	CancelFunc context.CancelFunc
+
+	Iterations                 uint
+	NoUsefulSegmentsIterations uint
 }
 
 var _ speech.ToText = (*SpeechToText)(nil)
@@ -181,15 +186,15 @@ func (stt *SpeechToText) writeSegmentNoLock(
 	s *whisper.Segment,
 	isFinal bool,
 ) bool {
-	logger.Debugf(ctx, "segment: %#+v", s)
+	logger.Debugf(ctx, "segment: %#+v; isFinal: %v", s, isFinal)
 
 	trimmedText := strings.ToLower(strings.Trim(s.Text, " "))
 	switch {
 	case strings.HasPrefix(trimmedText, "[") && strings.HasSuffix(trimmedText, "]"):
-		// e.g.: [silence], [typing], [click]
+		// e.g.: [silence], [typing], [click], [music], [blank_audio], [ pause ]
 		return false
 	case strings.HasPrefix(trimmedText, "(") && strings.HasSuffix(trimmedText, ")"):
-		// e.g.: (clicking)
+		// e.g.: (clicking), (faint clicking), (door opens)
 		return false
 	case strings.HasPrefix(trimmedText, "*") && strings.HasSuffix(trimmedText, "*"):
 		// e.g.: *thump*
@@ -238,6 +243,7 @@ func (stt *SpeechToText) writeSegmentNoLock(
 		IsFinal:         isFinal,
 	}
 
+	logger.Debugf(ctx, "sending Transcript: %#+v", *t)
 	select {
 	case stt.Out <- t:
 	default:
@@ -297,13 +303,15 @@ func (stt *SpeechToText) commitAudio(
 	}
 
 	samples := convertBytesToFloat32Slice(buf)
+	duration := getDurationFromBytes(uint64(len(buf)))
 	logger.Debugf(
 		ctx,
-		"writing to whisper %d bytes, %v seconds, %d samples...",
+		"writing to whisper %d bytes, %v, %d samples...",
 		len(buf),
-		float64(len(buf))/float64(stt.AudioEncoding().BytesForSecond()),
+		duration,
 		len(samples),
 	)
+	stt.Iterations++
 	startCommittingTS := time.Now()
 	err := whisper.Whisper_full(
 		stt.Context,
@@ -313,9 +321,9 @@ func (stt *SpeechToText) commitAudio(
 	commitTime := time.Since(startCommittingTS)
 	logger.Debugf(
 		ctx,
-		"finished writing to whisper %d bytes, %v seconds, %d samples: %v (it took %v)",
+		"finished writing to whisper %d bytes, %v, %d samples: %v (it took %v)",
 		len(buf),
-		float64(len(buf))/float64(stt.AudioEncoding().BytesForSecond()),
+		duration,
 		len(samples),
 		err,
 		commitTime,
@@ -348,12 +356,25 @@ func (stt *SpeechToText) commitAudio(
 
 	numUsefulSegments := 0
 	for i := 0; i < numSegments; i++ {
+		logger.Debugf(ctx, "writeSegment(ctx, stt.Context.Segment(%d), %v)", i, i <= lastCommittingSegmentIdx)
 		if stt.writeSegment(ctx, stt.Context.Segment(i), i <= lastCommittingSegmentIdx) {
 			numUsefulSegments++
 		}
 	}
+
+	logger.Debugf(ctx, "numUsefulSegments == %d", numUsefulSegments)
 	if numUsefulSegments == 0 {
-		return nil
+		stt.NoUsefulSegmentsIterations++
+		logger.Debugf(
+			ctx,
+			"%d: NoUsefulSegmentsIterations: %d >= %d",
+			stt.Iterations,
+			stt.NoUsefulSegmentsIterations, DiscardIfNoUsefulSegmentsIterations,
+		)
+		if stt.NoUsefulSegmentsIterations >= DiscardIfNoUsefulSegmentsIterations || stt.Iterations == 1 {
+			stt.NoUsefulSegmentsIterations = 0
+			return nil
+		}
 	}
 
 	var (
