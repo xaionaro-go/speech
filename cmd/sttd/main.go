@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 
 	"github.com/facebookincubator/go-belt"
 	"github.com/facebookincubator/go-belt/tool/logger"
 	"github.com/facebookincubator/go-belt/tool/logger/implementation/logrus"
 	"github.com/spf13/pflag"
+	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server"
 )
@@ -25,6 +28,8 @@ func main() {
 	gpuFlag := pflag.Int("gpu", -1, "")
 	useGPUFlag := pflag.Bool("use-gpu", true, "")
 	contextsFlag := pflag.Uint("contexts", 1, "")
+	cacheContextsFlag := pflag.Uint("cache-contexts", 0, "")
+	netPprofAddr := pflag.String("net-pprof-listen-addr", "", "an address to listen for incoming net/pprof connections")
 	pflag.Parse()
 	if pflag.NArg() != 1 {
 		syntaxExit("expected one argument (bind address)")
@@ -38,6 +43,10 @@ func main() {
 	}
 	defer belt.Flush(ctx)
 
+	if *netPprofAddr != "" {
+		observability.Go(ctx, func() { l.Error(http.ListenAndServe(*netPprofAddr, nil)) })
+	}
+
 	listener, err := getListener(ctx, listenAddr)
 	if err != nil {
 		logger.Fatal(ctx, err)
@@ -49,7 +58,7 @@ func main() {
 	}
 	opts = append(opts, whisper.OptionUseGPU(*useGPUFlag))
 
-	srv := server.NewServer(*contextsFlag, server.OptionWhisperOptions(opts))
+	srv := server.NewServer(*contextsFlag, *cacheContextsFlag, server.OptionWhisperOptions(opts))
 
 	logger.Infof(ctx, "started at %v", listener.Addr())
 	err = srv.Serve(ctx, listener)

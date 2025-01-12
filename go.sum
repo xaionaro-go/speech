@@ -56,8 +56,6 @@ github.com/asticode/go-astikit v0.51.1/go.mod h1:h4ly7idim1tNhaVkdVBeXQZEE3L0xbl
 github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kBD4zp0CCIs=
 github.com/bketelsen/crypt v0.0.4/go.mod h1:aI6NrJ0pMGgvZKL1iVgXLnfIFJtfV+bKCoqOes/6LfM=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
-github.com/chrisjchandler/entropy v1.1.1 h1:la0Pn3t5PdHrOQR2vzHA/aVhILRXcUKgU4UEmcFtosQ=
-github.com/chrisjchandler/entropy v1.1.1/go.mod h1:ZLfRRzcBUUG3qKaySHMmn6z7Lnrd91SO7RZc705yPAs=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
@@ -234,6 +232,8 @@ github.com/hashicorp/go-version v1.7.0/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09
 github.com/hashicorp/go.net v0.0.1/go.mod h1:hjKkEWcCURg++eb33jQU7oqQcI9XDCnUzHA0oac0k90=
 github.com/hashicorp/golang-lru v0.5.0/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/hashicorp/golang-lru v0.5.1/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
+github.com/hashicorp/golang-lru/v2 v2.0.7 h1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs4luLUK2k=
+github.com/hashicorp/golang-lru/v2 v2.0.7/go.mod h1:QeFd9opnmA6QUJc5vARoKUSoFhyfM2/ZepoAG6RGpeM=
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
 github.com/hashicorp/logutils v1.0.0/go.mod h1:QIAnNjmIWmVIIkWDTG1z5v++HQmx9WQRO+LraFDTW64=
 github.com/hashicorp/mdns v1.0.0/go.mod h1:tL+uN++7HEJ6SQLQ2/p+z2pH24WQKWjBPkE0mNTz8vQ=
@@ -370,8 +370,8 @@ github.com/xaionaro-go/unsafetools v0.0.0-20241024014258-a46e1ce3763e h1:FV+/FVP
 github.com/xaionaro-go/unsafetools v0.0.0-20241024014258-a46e1ce3763e/go.mod h1:ERewyGVM0zYnWA9nxdHPIC3xc9Yrf5CgAnBITuP3FRE=
 github.com/xaionaro-go/whisper v0.0.0-20250112001617-f62796353e33 h1:u4gdBDRPZ06+XTyoISWedPa1YAOg8lAJVAld0mM9an8=
 github.com/xaionaro-go/whisper v0.0.0-20250112001617-f62796353e33/go.mod h1:uckbdbn37jcaJ5ZdDSWtEQRVz/qWnReWxkcs6LWTlMU=
-github.com/xaionaro-go/xslices v0.0.0-20250112205724-cca15bd049b6 h1:dvdb9Kue84izyVrl7mdX+W40WNOiRj9hP99kYjuK1q4=
-github.com/xaionaro-go/xslices v0.0.0-20250112205724-cca15bd049b6/go.mod h1:q6vDZDNVfWtzmLbrX8FIHH6IHNCIk0JOn8VlbBd8znQ=
+github.com/xaionaro-go/xcontext v0.0.0-20250111150717-e70e1f5b299c h1://sE/WLpO7wpcVsp1FfTNAG9JmL60KfXiogNVKYivTA=
+github.com/xaionaro-go/xcontext v0.0.0-20250111150717-e70e1f5b299c/go.mod h1:MGRT1+2m2adVRc4aAn0RVGysjsSRKN9VCyBJLHvQd4k=
 github.com/xaionaro-go/xsync v0.0.0-20250112014853-6c166ba9b463 h1:7WcBmB4UYPVCEuKXps0e0A441f47a16YpyVpMHLUDZM=
 github.com/xaionaro-go/xsync v0.0.0-20250112014853-6c166ba9b463/go.mod h1:FCpywNAl4a4hgzE8j7Z+TpdhBQi5WHxnI35jOrFpoQw=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

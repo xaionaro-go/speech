@@ -13,13 +13,14 @@ require (
 	github.com/facebookincubator/go-belt v0.0.0-20240804203001-846c4409d41c
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.7.0
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/mutablelogic/go-whisper v0.0.22-0.20241221210700-ba095bdd5196
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.10.0
 	github.com/xaionaro-go/audio v0.0.0-20250112164406-5f5703997d03
 	github.com/xaionaro-go/observability v0.0.0-20250111142240-5d72f17a6d12
 	github.com/xaionaro-go/player v0.0.0-20250112171237-124c9f68a262
-	github.com/xaionaro-go/xslices v0.0.0-20250112205724-cca15bd049b6
+	github.com/xaionaro-go/xcontext v0.0.0-20250111150717-e70e1f5b299c
 	github.com/xaionaro-go/xsync v0.0.0-20250112014853-6c166ba9b463
 	google.golang.org/grpc v1.69.2
 	google.golang.org/protobuf v1.36.2
@@ -31,7 +32,6 @@ require (
 	github.com/DataDog/gostackparse v0.7.0 // indirect
 	github.com/asticode/go-astiav v0.30.0 // indirect
 	github.com/asticode/go-astikit v0.51.1 // indirect
-	github.com/chrisjchandler/entropy v1.1.1
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/ebitengine/oto/v3 v3.3.2 // indirect
 	github.com/ebitengine/purego v0.8.0 // indirect
@@ -71,7 +71,7 @@ require (
 	github.com/xaionaro-go/gorex v0.0.0-20241010205749-bcd59d639c4d // indirect
 	github.com/xaionaro-go/libsrt v0.0.0-20250105232601-e760c79b2bc3 // indirect
 	github.com/xaionaro-go/logrustash v0.0.0-20240804141650-d48034780a5f // indirect
-	github.com/xaionaro-go/object v0.0.0-20241026212449-753ce10ec94c // indirect
+	github.com/xaionaro-go/object v0.0.0-20241026212449-753ce10ec94c
 	github.com/xaionaro-go/proxy v0.0.0-20250111150848-1f0e7b262638 // indirect
 	github.com/xaionaro-go/recoder v0.0.0-20250111153658-7e55cef13b0f // indirect
 	github.com/xaionaro-go/spinlock v0.0.0-20200518175509-30e6d1ce68a1 // indirect

@@ -154,6 +154,8 @@ func (stt *SpeechToText) isLikelyHallucination(
 		logger.Tracef(ctx, "hallucination check for large-v3")
 		switch t0 {
 		case "0.", "0.5.", "0.001.",
+			//"I'll be right back.",
+			"I'm sorry.",
 			"I'm sorry. I'm sorry. I'm sorry.":
 			return true
 		}

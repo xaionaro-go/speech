@@ -1,22 +1,26 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha1"
+	"crypto/sha512"
 	"fmt"
 	"net"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
 
 	"github.com/facebookincubator/go-belt"
 	"github.com/facebookincubator/go-belt/tool/logger"
+	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/xaionaro-go/object"
 	"github.com/xaionaro-go/speech/pkg/speech"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/consts"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/goconv"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/proto/go/speechtotext_grpc"
-	"github.com/xaionaro-go/xslices"
+	"github.com/xaionaro-go/xcontext"
 	"github.com/xaionaro-go/xsync"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -42,18 +46,34 @@ type Server struct {
 
 	ContextsLimit uint
 	Options       Options
+
+	STTInitCacheSize   uint
+	STTInitCacheLocker xsync.Mutex
+	STTInitCache       *lru.Cache[objectHash, speech.ToText]
 }
+
+type objectHash [64 + sha512.Size]byte
 
 func NewServer(
 	contextsLimit uint,
+	cacheSize uint,
 	opts ...Option,
 ) *Server {
 	srv := &Server{
 		GRPCServer:    grpc.NewServer(grpc.MaxRecvMsgSize(consts.MaxMessageSize)),
 		ContextsLimit: contextsLimit,
 		Options:       opts,
+
+		STTInitCacheSize: cacheSize,
 	}
 	speechtotext_grpc.RegisterSpeechToTextServer(srv.GRPCServer, srv)
+	if cacheSize > 0 {
+		cache, err := lru.New[objectHash, speech.ToText](int(cacheSize))
+		if err != nil {
+			panic(err)
+		}
+		srv.STTInitCache = cache
+	}
 	return srv
 }
 
@@ -119,29 +139,61 @@ func (srv *Server) NewContext(
 		return status.Errorf(codes.ResourceExhausted, "too many contexts already created, please close previous contexts first")
 	}
 
-	modelBytes := xslices.Clone(req.GetModelBytes())
+	modelBytes := req.GetModelBytes()
+	var requestHash objectHash
 
-	cfg := srv.Options.config()
-
-	var stt speech.ToText
-	backend := req.GetBackend()
-	switch backend := backend.(type) {
-	case *speechtotext_grpc.NewContextRequest_Whisper:
-		var err error
-		stt, err = whisper.New(
-			ctx,
-			modelBytes,
-			speech.Language(req.GetLanguage()),
-			goconv.SamplingStrategyFromGRPC(backend.Whisper.GetSamplingStrategy()),
-			req.GetShouldTranslate(),
-			goconv.AlignmentAheadsPresetFromGRPC(backend.Whisper.GetAlignmentAheadsPreset()),
-			cfg.WhisperOptions...,
-		)
+	if srv.STTInitCacheSize > 0 {
+		logger.Debugf(ctx, "calculating the hash of the request")
+		req.ModelBytes = nil
+		requestHashValue, err := object.CalcCryptoHash(req, sha1.Sum(modelBytes))
 		if err != nil {
-			return status.Errorf(codes.Unknown, "unable to initialize a whisper instance: %v", err)
+			logger.Errorf(ctx, "unable to calculate the hash of the request: %v", err)
 		}
-	default:
-		return status.Errorf(codes.InvalidArgument, "backend type %T is not supported, yet", backend)
+		copy(requestHash[:], requestHashValue)
+		logger.Debugf(ctx, "request hash is %X", requestHash)
+	}
+
+	stt := xsync.DoR1(ctx, &srv.STTInitCacheLocker, func() speech.ToText {
+		if srv.STTInitCacheSize <= 0 {
+			return nil
+		}
+		var zeroHash objectHash
+		if bytes.Equal(requestHash[:], zeroHash[:]) {
+			return nil
+		}
+		v, ok := srv.STTInitCache.Peek(requestHash)
+		if !ok {
+			return nil
+		}
+		srv.STTInitCache.Remove(requestHash)
+		return v
+	})
+
+	if stt != nil {
+		logger.Debugf(ctx, "reuse a previously already initialized context")
+	} else {
+		logger.Debugf(ctx, "initializing a context from scratch")
+
+		cfg := srv.Options.config()
+		backend := req.GetBackend()
+		switch backend := backend.(type) {
+		case *speechtotext_grpc.NewContextRequest_Whisper:
+			var err error
+			stt, err = whisper.New(
+				xcontext.DetachDone(ctx),
+				modelBytes,
+				speech.Language(req.GetLanguage()),
+				goconv.SamplingStrategyFromGRPC(backend.Whisper.GetSamplingStrategy()),
+				req.GetShouldTranslate(),
+				goconv.AlignmentAheadsPresetFromGRPC(backend.Whisper.GetAlignmentAheadsPreset()),
+				cfg.WhisperOptions...,
+			)
+			if err != nil {
+				return status.Errorf(codes.Unknown, "unable to initialize a whisper instance: %v", err)
+			}
+		default:
+			return status.Errorf(codes.InvalidArgument, "backend type %T is not supported, yet", backend)
+		}
 	}
 
 	contextID := srv.NextContextID.Add(1)
@@ -149,7 +201,25 @@ func (srv *Server) NewContext(
 	defer func() {
 		logger.Debugf(ctx, "closing context %d", contextID)
 		srv.ContextMap.Delete(contextID)
-		stt.Close()
+		if srv.STTInitCacheSize <= 0 {
+			logger.Debugf(ctx, "closing STT")
+			stt.Close()
+			return
+		}
+
+		srv.STTInitCacheLocker.Do(ctx, func() {
+			if srv.STTInitCache.Len() >= int(srv.STTInitCacheSize) {
+				key, stt, ok := srv.STTInitCache.GetOldest()
+				if !ok {
+					panic("impossible happened")
+				}
+				logger.Debugf(ctx, "closing old STT")
+				stt.Close()
+				srv.STTInitCache.Remove(key)
+			}
+
+			srv.STTInitCache.Add(requestHash, stt)
+		})
 	}()
 
 	err := respSrv.Send(&speechtotext_grpc.NewContextReply{
@@ -161,7 +231,6 @@ func (srv *Server) NewContext(
 
 	logger.Debugf(ctx, "initialized context %d", contextID)
 	<-ctx.Done()
-	runtime.KeepAlive(modelBytes)
 	return ctx.Err()
 }
 
@@ -219,7 +288,10 @@ func (srv *Server) OutputChan(
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case t := <-ch:
+		case t, ok := <-ch:
+			if !ok {
+				return status.Errorf(codes.Aborted, "the channel is closed")
+			}
 			err := replySrv.Send(&speechtotext_grpc.OutputChanReply{
 				Transcript: goconv.TranscriptToGRPC(t),
 			})

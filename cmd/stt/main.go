@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strings"
 	"time"
@@ -41,6 +43,7 @@ func main() {
 	printTokenTimestampsFlag := pflag.Bool("print-token-timestamps", false, "")
 	printConfidencesFlag := pflag.Bool("print-confidences", false, "")
 	printEntropyFlag := pflag.Bool("print-entropy", false, "")
+	netPprofAddr := pflag.String("net-pprof-listen-addr", "", "an address to listen for incoming net/pprof connections")
 	pflag.Parse()
 	if pflag.NArg() != 1 {
 		syntaxExit("expected one argument (whisper model path)")
@@ -55,6 +58,10 @@ func main() {
 	}
 	defer belt.Flush(ctx)
 
+	if *netPprofAddr != "" {
+		observability.Go(ctx, func() { l.Error(http.ListenAndServe(*netPprofAddr, nil)) })
+	}
+
 	whisperModel, err := os.ReadFile(whisperModelPath)
 	if err != nil {
 		logger.Fatal(ctx, err)
@@ -68,6 +75,7 @@ func main() {
 
 	var stt speech.ToText
 	if *remoteFlag != "" {
+		logger.Debugf(ctx, "initializing a remote context")
 		stt, err = client.New(ctx, *remoteFlag, &speechtotext_grpc.NewContextRequest{
 			ModelBytes:      whisperModel,
 			Language:        *langFlag,
@@ -80,6 +88,7 @@ func main() {
 			},
 		})
 	} else {
+		logger.Debugf(ctx, "initializing a local context")
 		stt, err = whisper.New(
 			ctx,
 			whisperModel,
