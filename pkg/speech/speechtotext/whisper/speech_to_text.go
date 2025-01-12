@@ -118,9 +118,12 @@ func New(
 }
 
 func isLikelyHallucination(s *whisper.Segment) bool {
-	t := strings.Trim(s.Text, " !.")
+	t := strings.Trim(s.Text, " ")
+	t = strings.ReplaceAll(t, "!", "")
+	t = strings.ReplaceAll(t, ".", "")
 	switch t {
 	case "Thank you for watching", "Thanks for watching",
+		"Thank you for watching Please subscribe to my channel",
 		"Bye":
 		return true
 	}
