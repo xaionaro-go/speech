@@ -1,6 +1,0 @@
-prefix=/home/streaming/go/src/github.com/xaionaro-go/speech/thirdparty/whisper.cpp
-
-Name: libwhisper-cuda.pc
-Description: No description
-Version: 0.0.0
-Libs: -L${prefix}/build/ggml/src/ggml-cuda -lggml-cuda

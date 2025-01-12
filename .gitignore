@@ -1,2 +1,3 @@
 /build
 /result.log
+/pkg/speech/speechtotext/implementations/whisper/pkgconfig/*.pc

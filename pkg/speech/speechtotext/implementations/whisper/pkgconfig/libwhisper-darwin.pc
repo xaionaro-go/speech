@@ -1,6 +1,0 @@
-prefix=/home/streaming/go/src/github.com/xaionaro-go/speech/thirdparty/whisper.cpp
-
-Name: libwhisper-darwin.pc
-Description: No description
-Version: 0.0.0
-Libs: -L${prefix}/build/ggml/src -L${prefix}/build/ggml/src/ggml-blas -L${prefix}/build/ggml/src/ggml-metal -L${prefix}/build/src -lwhisper -lggml -lggml-base -lggml-cpu -lggml-blas -lggml-metal -lm -lstdc++ -framework Accelerate -framework Metal -framework Foundation -framework CoreGraphics
