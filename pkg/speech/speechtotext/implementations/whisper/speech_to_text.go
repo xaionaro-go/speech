@@ -156,6 +156,7 @@ func (stt *SpeechToText) isLikelyHallucination(
 		case "0.", "0.5.", "0.001.",
 			//"I'll be right back.",
 			"I'm sorry.",
+			"So, let's do this.",
 			"I'm sorry. I'm sorry. I'm sorry.":
 			return true
 		}
