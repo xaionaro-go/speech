@@ -16,7 +16,7 @@ require (
 	github.com/mutablelogic/go-whisper v0.0.22-0.20241221210700-ba095bdd5196
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.10.0
-	github.com/xaionaro-go/audio v0.0.0-20250111194626-c2230ceba5bb
+	github.com/xaionaro-go/audio v0.0.0-20250112132436-e89135189688
 	github.com/xaionaro-go/observability v0.0.0-20250111142240-5d72f17a6d12
 	github.com/xaionaro-go/player v0.0.0-20250111155300-087e2c146e06
 	github.com/xaionaro-go/xsync v0.0.0-20250112014853-6c166ba9b463

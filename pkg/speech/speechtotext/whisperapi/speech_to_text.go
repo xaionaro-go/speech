@@ -97,9 +97,9 @@ func (stt *SpeechToText) loop(ctx context.Context) (_err error) {
 		}
 		stt.resultQueue <- &speech.Transcript{
 			Variants: []speech.TranscriptVariant{{
-				Text:            text,
-				TranscriptWords: words,
-				Confidence:      0.5,
+				Text:             speech.Text(text),
+				TranscriptTokens: words,
+				Confidence:       0.5,
 			}},
 			Stability:       0.5,
 			AudioChannelNum: 0,

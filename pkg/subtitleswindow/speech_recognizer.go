@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/facebookincubator/go-belt/tool/logger"
 	"github.com/hashicorp/go-multierror"
+	syswhisper "github.com/mutablelogic/go-whisper/sys/whisper"
 	"github.com/xaionaro-go/audio/pkg/audio"
 	"github.com/xaionaro-go/audio/pkg/audio/resampler"
 	"github.com/xaionaro-go/observability"
@@ -55,6 +56,7 @@ func newSpeechRecognizer(
 		language,
 		whisper.SamplingStrategyBreamSearch,
 		shouldTranslate,
+		syswhisper.AlignmentAheadsPresetNone,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("whisper.New: %w", err)
@@ -126,7 +128,7 @@ func (r *speechRecognizer) addTranscript(
 		}
 		r.subtitles = append(r.subtitles, subtitlePiece{
 			TS:   time.Now(),
-			Text: text,
+			Text: string(text),
 		})
 		r.render(ctx)
 	})

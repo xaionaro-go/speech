@@ -47,8 +47,8 @@ func parseLine(
 func parseMessage(
 	ctx context.Context,
 	message string,
-) (string, []speech.TranscriptWord, error) {
-	var words []speech.TranscriptWord
+) (string, []speech.TranscriptToken, error) {
+	var words []speech.TranscriptToken
 	var lines []string
 	for _, line := range strings.Split(message, "\n") {
 		if len(line) == 0 {
@@ -59,10 +59,10 @@ func parseMessage(
 			return "", nil, fmt.Errorf("unable to parse line '%s': %w", line, err)
 		}
 		lines = append(lines, text)
-		words = append(words, speech.TranscriptWord{
+		words = append(words, speech.TranscriptToken{
 			StartTime:  startTS,
 			EndTime:    endTS,
-			Text:       text,
+			Text:       speech.Text(text),
 			Confidence: 0.5,
 			Speaker:    "",
 		})

@@ -1,11 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/facebookincubator/go-belt"
 	"github.com/facebookincubator/go-belt/tool/logger"
@@ -31,6 +31,8 @@ func main() {
 	pflag.Var(&alignmentAheadPresentFlag, "alignment-aheads-preset", "")
 	gpuFlag := pflag.Int("gpu", -1, "")
 	shouldTranslateFlag := pflag.Bool("translate", false, "")
+	printTimestampsFlag := pflag.Bool("print-timestamps", false, "")
+	printProbabilitiesFlag := pflag.Bool("print-probabilities", false, "")
 	pflag.Parse()
 	if pflag.NArg() != 1 {
 		syntaxExit("expected one argument (whisper model path)")
@@ -73,15 +75,31 @@ func main() {
 	observability.Go(ctx, func() {
 		defer logger.Infof(ctx, "stopped reader")
 		logger.Infof(ctx, "started reader")
+		previousMessageLength := 0
 		for t := range stt.OutputChan() {
-			var out bytes.Buffer
-			enc := json.NewEncoder(&out)
-			enc.SetIndent("", " ")
-			err := enc.Encode(t)
-			if err != nil {
-				logger.Fatal(ctx, err)
+			variant := t.Variants[0]
+			fmt.Printf("\r%s", strings.Repeat(" ", previousMessageLength))
+			text := strings.ReplaceAll(string(variant.Text), "\n", "|")
+			if *printTimestampsFlag {
+				text = fmt.Sprintf(
+					"%8s - %8v: %s",
+					variant.StartTime().Truncate(100*time.Millisecond),
+					variant.EndTime().Truncate(100*time.Millisecond),
+					text,
+				)
 			}
-			fmt.Println(out.String())
+			if *printProbabilitiesFlag {
+				var probs []string
+				for _, token := range variant.TranscriptTokens {
+					probs = append(probs, fmt.Sprintf("%f", token.Confidence))
+				}
+				text += fmt.Sprintf(" | %s", strings.Join(probs, ", "))
+			}
+			fmt.Printf("\r%s", text)
+			previousMessageLength = len(text)
+			if t.IsFinal {
+				fmt.Printf("\n")
+			}
 		}
 	})
 

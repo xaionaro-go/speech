@@ -117,6 +117,18 @@ func New(
 	return stt, nil
 }
 
+func isHangingSegment(s *whisper.Segment) bool {
+	// Sometimes Whisper goes crazy and hangs while processing a specific audio,
+	// in this case it returns a lot of exclamation marks and nothing else
+
+	for _, token := range s.Tokens {
+		if token.Text != "!" {
+			return false
+		}
+	}
+	return true
+}
+
 func (stt *SpeechToText) launchProcessingLoop(ctx context.Context) {
 	stt.Out = make(chan *speech.Transcript, 1024)
 	observability.Go(ctx, func() {
@@ -212,13 +224,13 @@ func (stt *SpeechToText) writeSegmentNoLock(
 
 	nonEmptyTokenCount := 0
 
-	words := make([]speech.TranscriptWord, 0, len(s.Tokens))
+	words := make([]speech.TranscriptToken, 0, len(s.Tokens))
 	for idx, token := range s.Tokens {
 		logger.Debugf(ctx, "token %d: %#+v", idx, token)
-		words = append(words, speech.TranscriptWord{
+		words = append(words, speech.TranscriptToken{
 			StartTime:  token.T0 + stt.CommittingPos,
 			EndTime:    token.T1 + stt.CommittingPos,
-			Text:       token.Text,
+			Text:       speech.Text(token.Text),
 			Confidence: token.P,
 			Speaker:    speaker,
 		})
@@ -233,9 +245,9 @@ func (stt *SpeechToText) writeSegmentNoLock(
 
 	t := &speech.Transcript{
 		Variants: []speech.TranscriptVariant{{
-			Text:            s.Text,
-			TranscriptWords: words,
-			Confidence:      0.5,
+			Text:             speech.Text(s.Text),
+			TranscriptTokens: words,
+			Confidence:       0.5,
 		}},
 		Stability:       0,
 		AudioChannelNum: stt.AudioChannels(),
@@ -354,10 +366,21 @@ func (stt *SpeechToText) commitAudio(
 
 	logger.Debugf(ctx, "lastCommittingSegmentIdx == %d", lastCommittingSegmentIdx)
 
+	hasHangingSegment := false
 	numUsefulSegments := 0
 	for i := 0; i < numSegments; i++ {
 		logger.Debugf(ctx, "writeSegment(ctx, stt.Context.Segment(%d), %v)", i, i <= lastCommittingSegmentIdx)
-		if stt.writeSegment(ctx, stt.Context.Segment(i), i <= lastCommittingSegmentIdx) {
+		segment := stt.Context.Segment(i)
+		if isHangingSegment(segment) {
+			logger.Debugf(ctx, "this is a hang-causing segment")
+			if i > lastCommittingSegmentIdx {
+				logger.Debugf(ctx, "setting lastCommittingSegmentIdx to %d", i)
+				lastCommittingSegmentIdx = i
+			}
+			hasHangingSegment = true
+			continue
+		}
+		if stt.writeSegment(ctx, segment, i <= lastCommittingSegmentIdx) {
 			numUsefulSegments++
 		}
 	}
@@ -367,14 +390,25 @@ func (stt *SpeechToText) commitAudio(
 		stt.NoUsefulSegmentsIterations++
 		logger.Debugf(
 			ctx,
-			"%d: NoUsefulSegmentsIterations: %d >= %d",
+			"%d: NoUsefulSegmentsIterations: %d >= %d; hasHangingSegment: %v",
 			stt.Iterations,
 			stt.NoUsefulSegmentsIterations, DiscardIfNoUsefulSegmentsIterations,
+			hasHangingSegment,
 		)
-		if stt.NoUsefulSegmentsIterations >= DiscardIfNoUsefulSegmentsIterations || stt.Iterations == 1 {
+		if stt.NoUsefulSegmentsIterations >= DiscardIfNoUsefulSegmentsIterations || hasHangingSegment {
 			stt.NoUsefulSegmentsIterations = 0
+			stt.CommittingPos += bufferEndTSDiff
+			stt.CommittingPosBytes += uint64(len(buf))
 			return nil
 		}
+	}
+
+	logger.Debugf(ctx, "stt.Iterations == %d", stt.Iterations)
+	if stt.Iterations <= 2 { // warmup
+		stt.NoUsefulSegmentsIterations = 0
+		stt.CommittingPos += bufferEndTSDiff
+		stt.CommittingPosBytes += uint64(len(buf))
+		return nil
 	}
 
 	var (
@@ -385,10 +419,11 @@ func (stt *SpeechToText) commitAudio(
 		tsDiff = 0
 		bytesDiff = 0
 	} else {
-		segmentBeforeLast := stt.Context.Segment(lastCommittingSegmentIdx)
-		tsDiff = getLastTimestamp(segmentBeforeLast)
+		lastCommittingSegment := stt.Context.Segment(lastCommittingSegmentIdx)
+		tsDiff = getLastTimestamp(lastCommittingSegment)
 		bytesDiff = getBytesPosDiff(stt.CommittingPos+tsDiff, stt.CommittingPosBytes)
 	}
+	assert(ctx, bytesDiff%4 == 0)
 
 	stt.Mutex.Do(xsync.WithNoLogging(ctx, true), func() {
 		stt.TempBuffer = stt.TempBuffer[:0]
@@ -397,6 +432,8 @@ func (stt *SpeechToText) commitAudio(
 		stt.NextBuffer = stt.NextBuffer[:0]
 		stt.CommittingBuffer = stt.CommittingBuffer[:0]
 		stt.NextBuffer, stt.TempBuffer = stt.TempBuffer, stt.NextBuffer
+
+		assert(ctx, len(stt.NextBuffer)%4 == 0)
 
 		logger.Debugf(
 			ctx,

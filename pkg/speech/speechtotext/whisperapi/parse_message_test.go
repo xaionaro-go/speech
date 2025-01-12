@@ -18,7 +18,7 @@ func TestParseMessage(t *testing.T) {
 	_, words, err := parseMessage(ctx, message)
 	require.NoError(t, err)
 	require.Equal(t,
-		[]speech.TranscriptWord{
+		[]speech.TranscriptToken{
 			{
 				StartTime:  1592 * time.Millisecond,
 				EndTime:    1912 * time.Millisecond,
