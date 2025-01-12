@@ -47,6 +47,7 @@ ENABLE_CUDA=true make subtitleswindow-linux-amd64
 
 Run:
 ```sh
+(cd ./thirdparty/whisper.cpp && ./models/download-ggml-model.sh medium)
 ./build/subtitleswindow-linux-amd64 thirdparty/whisper.cpp/models/ggml-medium.bin rtmp://my.server:1935/myapp/mystream/
 ```
 
@@ -57,6 +58,7 @@ A window will pop up, and you'll see that it displays the most recent transcript
 On the remote server run:
 ```sh
 ENABLE_CUDA=true make sttd-linux-amd64
+(cd ./thirdparty/whisper.cpp && ./models/download-ggml-model.sh large-v3)
 ./build/sttd-linux-amd64 --log-level trace 0.0.0.0:1234 --default-model-file thirdparty/whisper.cpp/models/ggml-large-v3.bin
 ```
 
