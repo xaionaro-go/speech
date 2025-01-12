@@ -65,6 +65,6 @@ ENABLE_CUDA=true make sttd-linux-amd64
 Now on your local computer run:
 ```sh
 make subtitleswindow-linux-amd64
-./build/subtitleswindow-linux-amd64 --remote-addr address-of-my-remote-server:1234 --translate=true --language en-US ''
+./build/subtitleswindow-linux-amd64 --remote-addr address-of-my-remote-server:1234 --translate=true ''
 ```
 
