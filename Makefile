@@ -82,6 +82,9 @@ endif
 
 all: stt-$(shell go env GOOS)-$(shell go env GOARCH) subtitleswindow-$(shell go env GOOS)-$(shell go env GOARCH)
 
+thirdparty/whisper.cpp/CMakeLists.txt:
+	git submodule update
+
 build:
 	mkdir -p build
 
@@ -92,7 +95,7 @@ priv/android-apk.keystore:
 signer-sign-streampanel-arm64-apk: priv/android-apk.keystore
 	jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 -keystore priv/android-apk.keystore build/streampanel-arm64.apk streampanel
 
-deps: pkg/speech/speechtotext/whisper/pkgconfig/libwhisper.pc thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI)
+deps: thirdparty/whisper.cpp/CMakeLists.txt pkg/speech/speechtotext/whisper/pkgconfig/libwhisper.pc thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI)
 
 pkg/speech/speechtotext/whisper/pkgconfig/libwhisper.pc:
 	go generate ./pkg/speech/speechtotext/whisper/pkgconfig/...
