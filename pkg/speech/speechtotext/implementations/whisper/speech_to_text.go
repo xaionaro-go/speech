@@ -1,6 +1,7 @@
 package whisper
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha1"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"unicode"
 
 	"github.com/facebookincubator/go-belt/tool/logger"
+	"github.com/lazybeaver/entropy"
 	"github.com/mutablelogic/go-whisper/pkg/schema"
 	"github.com/mutablelogic/go-whisper/sys/whisper"
 	"github.com/xaionaro-go/audio/pkg/audio"
@@ -28,6 +30,9 @@ const (
 	DiscardIfNoUsefulSegmentsIterations      = 4
 	DiscardFromSingleIterationIfBufferBigger = 10 * time.Second
 	IterationInterval                        = time.Second
+
+	EntropyMin            = 3.63
+	EntropyDetectorLenMin = 80
 )
 
 type SpeechToText struct {
@@ -51,6 +56,11 @@ type SpeechToText struct {
 
 	Iterations                 uint
 	NoUsefulSegmentsIterations uint
+	ModelHash                  [sha1.Size]byte
+
+	LastSegmentString  string
+	LastSegmentStartTS time.Duration
+	LastSegmentEndTS   time.Duration
 }
 
 var _ speech.ToText = (*SpeechToText)(nil)
@@ -85,9 +95,10 @@ func New(
 	logger.Debugf(ctx, "model SHA1: %X", h)
 
 	stt := &SpeechToText{
-		Context:  whisper.Whisper_init_from_buffer_with_params(modelBytes, params),
-		Params:   whisper.DefaultFullParams(samplingStrategy.ToWhisper()),
-		Received: &schema.Transcription{},
+		Context:   whisper.Whisper_init_from_buffer_with_params(modelBytes, params),
+		Params:    whisper.DefaultFullParams(samplingStrategy.ToWhisper()),
+		Received:  &schema.Transcription{},
+		ModelHash: h,
 
 		IsFirstSpeakerSpeaking: true,
 	}
@@ -121,16 +132,63 @@ func New(
 	return stt, nil
 }
 
-func isLikelyHallucination(s *whisper.Segment) bool {
-	t := strings.Trim(s.Text, " ")
-	t = strings.ReplaceAll(t, "!", "")
-	t = strings.ReplaceAll(t, ".", "")
-	switch t {
-	case "Thank you for watching", "Thanks for watching",
-		"Thank you for watching Please subscribe to my channel",
-		"Bye":
-		return true
+func (stt *SpeechToText) isLikelyHallucination(
+	ctx context.Context,
+	s *whisper.Segment,
+) bool {
+	t0 := strings.Trim(s.Text, " ")
+	t1 := strings.ReplaceAll(t0, "!", "")
+	t1 = strings.ReplaceAll(t1, ".", "")
+	switch {
+	case bytes.Equal(stt.ModelHash[:], ModelHashMedium[:]):
+		logger.Tracef(ctx, "hallucination check for medium")
+		switch t1 {
+		case "Thank you for watching", "Thanks for watching",
+			"Thank you for watching Please subscribe to my channel",
+			"Thank you",
+			"Bye":
+			return true
+		}
+
+	case bytes.Equal(stt.ModelHash[:], ModelHashLargeV3[:]):
+		logger.Tracef(ctx, "hallucination check for large-v3")
+		switch t0 {
+		case "0.", "0.5.", "0.001.",
+			"I'm sorry. I'm sorry. I'm sorry.":
+			return true
+		}
+		switch t1 {
+		case "Thank you for watching", "Thanks for watching",
+			"Thank you for watching Please subscribe to my channel",
+			"Thank you",
+			"Bye",
+			"Subtitles by the Amaraorg community",
+			"Okay",
+			"":
+			return true
+		}
+
+		switch {
+		case strings.Contains(s.Text, "So, this is the first step"):
+			return true
+		case strings.Contains(s.Text, "So, we have a function of 0.001"):
+			return true
+		}
+
+		if len(t0) > EntropyDetectorLenMin {
+			entropy, err := entropy.Shannon(string(s.Text))
+			if err != nil {
+				logger.Errorf(ctx, "unable to calculate shannon entropy: %v", err)
+				return false
+			}
+
+			if entropy < EntropyMin {
+				logger.Tracef(ctx, "entropy is too low, assuming a hallucination: %f < %f", entropy, EntropyMin)
+				return true
+			}
+		}
 	}
+
 	return false
 }
 
@@ -379,12 +437,25 @@ func (stt *SpeechToText) commitAudio(
 	}
 
 	lastSegment := stt.Context.Segment(numSegments - 1)
-	lastSegmentTSDiff := getLastTimestamp(lastSegment)
+	lastSegmentStartTS := getFirstTimestamp(lastSegment)
+
+	var lastSegmentEndTS time.Duration
+	if lastSegmentStartTS-time.Millisecond*500 < stt.LastSegmentStartTS &&
+		len(lastSegment.Text) <= len(stt.LastSegmentString) {
+		// for some reason on large-v3 it treats an silent tail as a part of the sentence. Forcefully cutting it here:
+		lastSegmentEndTS = stt.LastSegmentEndTS
+	} else {
+		lastSegmentEndTS = getLastTimestamp(lastSegment)
+
+		stt.LastSegmentString = lastSegment.Text
+		stt.LastSegmentStartTS = lastSegmentStartTS
+		stt.LastSegmentEndTS = lastSegmentEndTS
+	}
 	bufferEndTSDiff := getDurationFromBytes(uint64(len(buf)))
 
 	lastCommittingSegmentIdx := numSegments - 2
-	tailGapLength := bufferEndTSDiff - lastSegmentTSDiff
-	logger.Debugf(ctx, "tailGapLength == %v == %v - %v", tailGapLength, bufferEndTSDiff, lastSegmentTSDiff)
+	tailGapLength := bufferEndTSDiff - lastSegmentEndTS
+	logger.Debugf(ctx, "tailGapLength == %v == %v - %v", tailGapLength, bufferEndTSDiff, lastSegmentEndTS)
 	if tailGapLength >= GapToCommit {
 		logger.Debugf(ctx, "considering the last segment committed")
 		lastCommittingSegmentIdx = numSegments - 1
@@ -408,7 +479,7 @@ func (stt *SpeechToText) commitAudio(
 			hasHangingSegment = true
 			continue
 		}
-		if isLikelyHallucination(segment) {
+		if stt.isLikelyHallucination(ctx, segment) {
 			logger.Debugf(ctx, "likely a hallucination, skipping")
 			continue
 		}
@@ -517,6 +588,16 @@ func getLastTimestamp(s *whisper.Segment) time.Duration {
 			continue
 		}
 		return token.T1
+	}
+	return 0
+}
+
+func getFirstTimestamp(s *whisper.Segment) time.Duration {
+	for _, token := range s.Tokens {
+		if token.T0 == token.T1 {
+			continue
+		}
+		return token.T0
 	}
 	return 0
 }

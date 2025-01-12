@@ -31,6 +31,7 @@ require (
 	github.com/DataDog/gostackparse v0.7.0 // indirect
 	github.com/asticode/go-astiav v0.30.0 // indirect
 	github.com/asticode/go-astikit v0.51.1 // indirect
+	github.com/chrisjchandler/entropy v1.1.1
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/ebitengine/oto/v3 v3.3.2 // indirect
 	github.com/ebitengine/purego v0.8.0 // indirect
@@ -59,6 +60,7 @@ require (
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	github.com/jsummers/gobmp v0.0.0-20151104160322-e2ba15ffa76e // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
+	github.com/lazybeaver/entropy v0.0.0-20190817091901-99e00c014ccd
 	github.com/nicksnyder/go-i18n/v2 v2.4.0 // indirect
 	github.com/phuslu/goid v1.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect

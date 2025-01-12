@@ -1,9 +1,8 @@
 
-FORCE_DEBUG?=false
-
 ANDROID_NDK_VERSION?=r27b
 ANDROID_ABI?=arm64-v8a
 
+ENABLE_DEBUG?=false
 ENABLE_CUDA?=false
 ENABLE_VULKAN?=false
 ENABLE_BLAS?=false
@@ -45,12 +44,12 @@ ifeq ($(ENABLE_COREML), true)
 else
 	WHISPER_BUILD_FLAGS+=-DWHISPER_COREML=0
 endif
-
-ifeq ($(FORCE_DEBUG), true)
-	GOTAGS:=$(GOTAGS),force_debug
+ifeq ($(ENABLE_DEBUG), true)
+	WHISPER_BUILD_FLAGS+=-DCMAKE_BUILD_TYPE=Debug
 else
-	GOTAGS:=$(GOTAGS),release
+	WHISPER_BUILD_FLAGS+=-DCMAKE_BUILD_TYPE=Release
 endif
+
 GOTAGS:=$(GOTAGS:,%=%)
 
 GOBUILD_FLAGS?=-buildvcs=true
@@ -102,8 +101,8 @@ pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc:
 
 thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI):
 	mkdir -p thirdparty/whisper.cpp/build thirdparty/whisper.cpp/examples/whisper.android.java/app/src/main/jni/whisper/build
-	cd thirdparty/whisper.cpp/build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF $(WHISPER_BUILD_FLAGS) && make -j $(JOBS)
-	#cd thirdparty/whisper.cpp/examples/whisper.android.java/app/src/main/jni/whisper/build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF -DANDROID_ABI=$(ANDROID_ABI) $(WHISPER_BUILD_FLAGS) && make -j $(JOBS)
+	cd thirdparty/whisper.cpp/build && cmake .. -DBUILD_SHARED_LIBS=OFF $(WHISPER_BUILD_FLAGS) && make -j $(JOBS)
+	#cd thirdparty/whisper.cpp/examples/whisper.android.java/app/src/main/jni/whisper/build && cmake .. -DBUILD_SHARED_LIBS=OFF -DANDROID_ABI=$(ANDROID_ABI) $(WHISPER_BUILD_FLAGS) && make -j $(JOBS)
 	rm -f thirdparty/whisper.cpp/build/libwhisper-ready*
 	touch thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)
 
