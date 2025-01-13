@@ -368,8 +368,8 @@ github.com/xaionaro-go/spinlock v0.0.0-20200518175509-30e6d1ce68a1 h1:1Kqw9dv2Ln
 github.com/xaionaro-go/spinlock v0.0.0-20200518175509-30e6d1ce68a1/go.mod h1:UwmTXX+EpoEYHuy0rSys1Rp5PW+eVTgZSjgMVLJENKg=
 github.com/xaionaro-go/unsafetools v0.0.0-20241024014258-a46e1ce3763e h1:FV+/FVPYOncsNNqtlMvqRDrsQznArX0lO0PkFifixDs=
 github.com/xaionaro-go/unsafetools v0.0.0-20241024014258-a46e1ce3763e/go.mod h1:ERewyGVM0zYnWA9nxdHPIC3xc9Yrf5CgAnBITuP3FRE=
-github.com/xaionaro-go/whisper v0.0.0-20250112001617-f62796353e33 h1:u4gdBDRPZ06+XTyoISWedPa1YAOg8lAJVAld0mM9an8=
-github.com/xaionaro-go/whisper v0.0.0-20250112001617-f62796353e33/go.mod h1:uckbdbn37jcaJ5ZdDSWtEQRVz/qWnReWxkcs6LWTlMU=
+github.com/xaionaro-go/whisper v0.0.0-20250113100454-120b8b0488a2 h1:p8tFehNMIUOwWOsmeqSPJdcKfx/+ZZYJ34CvyFHsaek=
+github.com/xaionaro-go/whisper v0.0.0-20250113100454-120b8b0488a2/go.mod h1:uckbdbn37jcaJ5ZdDSWtEQRVz/qWnReWxkcs6LWTlMU=
 github.com/xaionaro-go/xcontext v0.0.0-20250111150717-e70e1f5b299c h1://sE/WLpO7wpcVsp1FfTNAG9JmL60KfXiogNVKYivTA=
 github.com/xaionaro-go/xcontext v0.0.0-20250111150717-e70e1f5b299c/go.mod h1:MGRT1+2m2adVRc4aAn0RVGysjsSRKN9VCyBJLHvQd4k=
 github.com/xaionaro-go/xsync v0.0.0-20250112014853-6c166ba9b463 h1:7WcBmB4UYPVCEuKXps0e0A441f47a16YpyVpMHLUDZM=

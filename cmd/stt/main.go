@@ -43,6 +43,7 @@ func main() {
 	printTokenTimestampsFlag := pflag.Bool("print-token-timestamps", false, "")
 	printConfidencesFlag := pflag.Bool("print-confidences", false, "")
 	printEntropyFlag := pflag.Bool("print-entropy", false, "")
+	printNoSpeechProbabilityFlag := pflag.Bool("print-no-speech-probability", false, "")
 	netPprofAddr := pflag.String("net-pprof-listen-addr", "", "an address to listen for incoming net/pprof connections")
 	pflag.Parse()
 	if pflag.NArg() != 1 {
@@ -150,6 +151,9 @@ func main() {
 			if *printEntropyFlag {
 				entropy, err := entropy.Shannon(string(variant.Text))
 				text += fmt.Sprintf(" | %f (%v)", entropy, err)
+			}
+			if *printNoSpeechProbabilityFlag {
+				text += fmt.Sprintf(" | %f", t.NoSpeechProbability)
 			}
 			fmt.Printf("\r%s", text)
 			previousMessageLength = len(text)

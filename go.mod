@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 replace github.com/asticode/go-astiav v0.30.0 => github.com/xaionaro-go/astiav v0.0.0-20250106205037-a1605f324663
 
-replace github.com/mutablelogic/go-whisper v0.0.22-0.20241221210700-ba095bdd5196 => github.com/xaionaro-go/whisper v0.0.0-20250112001617-f62796353e33
+replace github.com/mutablelogic/go-whisper v0.0.22-0.20241221210700-ba095bdd5196 => github.com/xaionaro-go/whisper v0.0.0-20250113100454-120b8b0488a2
 
 require (
 	fyne.io/fyne/v2 v2.5.3

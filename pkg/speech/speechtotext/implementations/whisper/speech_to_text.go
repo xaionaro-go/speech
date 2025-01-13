@@ -165,6 +165,7 @@ func (stt *SpeechToText) isLikelyHallucination(
 			"So, let's do this.",
 			"So, let's do that.",
 			"Well, I'm going to do it.",
+			"I don't know what to do.",
 			"I'm going to bed.",
 			"I'm going to sleep.",
 			"I'm going to go and get some water.",
@@ -378,10 +379,11 @@ func (stt *SpeechToText) writeSegmentNoLock(
 			TranscriptTokens: words,
 			Confidence:       0.5,
 		}},
-		Stability:       0,
-		AudioChannelNum: stt.AudioChannelsNoErr(),
-		Language:        speech.Language(whisper.Whisper_lang_str(stt.Context.DefaultLangId())),
-		IsFinal:         isFinal,
+		Stability:           0,
+		NoSpeechProbability: s.NoSpeechProb,
+		AudioChannelNum:     stt.AudioChannelsNoErr(),
+		Language:            speech.Language(whisper.Whisper_lang_str(stt.Context.DefaultLangId())),
+		IsFinal:             isFinal,
 	}
 
 	logger.Debugf(ctx, "sending Transcript: %#+v", *t)

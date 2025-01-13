@@ -77,11 +77,12 @@ func (v *TranscriptVariant) EndTime() time.Duration {
 type TranscriptVariants []TranscriptVariant
 
 type Transcript struct {
-	Variants        TranscriptVariants
-	Stability       float32
-	AudioChannelNum audio.Channel
-	Language        Language
-	IsFinal         bool
+	Variants            TranscriptVariants
+	Stability           float32
+	NoSpeechProbability float32
+	AudioChannelNum     audio.Channel
+	Language            Language
+	IsFinal             bool
 }
 
 type ToText interface {
