@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/facebookincubator/go-belt/tool/logger"
 	"github.com/hashicorp/go-multierror"
@@ -226,16 +226,50 @@ func (r *speechRecognizer) render(
 	defer func() { logger.Debugf(ctx, "/render(ctx)") }()
 
 	r.renderLocker.Do(ctx, func() {
-		var lines []string
+		var lines []widget.RichTextSegment
 		for _, piece := range r.subtitles {
 			if piece.TS.After(time.Now().Add(-timeout)) {
-				lines = append(lines, piece.Text)
+				var style widget.RichTextStyle
+				if piece.IsFinal {
+					style = widget.RichTextStyle{
+						Alignment: fyne.TextAlignCenter,
+						ColorName: theme.ColorNameForeground,
+						Inline:    false,
+						SizeName:  theme.SizeNameHeadingText,
+						TextStyle: fyne.TextStyle{
+							Bold:      false,
+							Italic:    false,
+							Monospace: false,
+							Symbol:    false,
+							TabWidth:  0,
+							Underline: false,
+						},
+					}
+				} else {
+					style = widget.RichTextStyle{
+						Alignment: fyne.TextAlignCenter,
+						ColorName: theme.ColorNameHyperlink,
+						Inline:    false,
+						SizeName:  theme.SizeNameHeadingText,
+						TextStyle: fyne.TextStyle{
+							Bold:      false,
+							Italic:    false,
+							Monospace: false,
+							Symbol:    false,
+							TabWidth:  0,
+							Underline: false,
+						},
+					}
+				}
+				logger.Debugf(ctx, "resultText[%d] = '%s'", len(lines), piece.Text)
+				lines = append(lines, &widget.TextSegment{
+					Style: style,
+					Text:  piece.Text,
+				})
 			}
 		}
 
-		resultText := "# " + strings.Join(lines, "\n# ")
-		logger.Debugf(ctx, "resultText = '%s'", resultText)
-		textObj := widget.NewRichTextFromMarkdown(resultText)
+		textObj := widget.NewRichText(lines...)
 		textObj.Wrapping = fyne.TextWrapWord
 		r.window.Container.RemoveAll()
 		r.window.Container.Add(textObj)
