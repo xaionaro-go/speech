@@ -14,8 +14,10 @@ import (
 	"github.com/mutablelogic/go-whisper/pkg/schema"
 	"github.com/mutablelogic/go-whisper/sys/whisper"
 	"github.com/xaionaro-go/audio/pkg/audio"
+	"github.com/xaionaro-go/audio/pkg/audio/resampler"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech"
+	"github.com/xaionaro-go/speech/pkg/vad"
 	"github.com/xaionaro-go/xsync"
 )
 
@@ -30,6 +32,7 @@ const (
 	DiscardIfNoUsefulSegmentsIterations      = 4
 	DiscardFromSingleIterationIfBufferBigger = 10 * time.Second
 	IterationInterval                        = time.Second
+	PreserveHeadingDuration                  = time.Second
 
 	EntropyMin            = 3.63
 	EntropyDetectorLenMin = 80
@@ -58,6 +61,12 @@ type SpeechToText struct {
 	NoUsefulSegmentsIterations uint
 	ModelHash                  [sha1.Size]byte
 
+	VAD          vad.VAD
+	VADThreshold float64
+	VADBuffer    []byte
+
+	VADCacheAlreadyHasVoice bool
+
 	LastSegmentString  string
 	LastSegmentStartTS time.Duration
 	LastSegmentEndTS   time.Duration
@@ -72,6 +81,7 @@ func New(
 	samplingStrategy SamplingStrategy,
 	shouldTranslate bool,
 	alignmentAheadPreset whisper.AlignmentAheadsPreset,
+	vadThreshold float64,
 	opts ...Option,
 ) (*SpeechToText, error) {
 	cfg := Options(opts).config()
@@ -100,7 +110,17 @@ func New(
 		Received:  &schema.Transcription{},
 		ModelHash: h,
 
+		VADThreshold: vadThreshold,
+
 		IsFirstSpeakerSpeaking: true,
+	}
+
+	if vadThreshold > 0 {
+		var err error
+		stt.VAD, err = stt.newVAD(ctx)
+		if err != nil {
+			return nil, ErrInitVAD{Err: err}
+		}
 	}
 
 	if shouldTranslate {
@@ -158,35 +178,54 @@ func (stt *SpeechToText) isLikelyHallucination(
 		case "0.", "0.5.", "0.001.",
 			"you",
 			"Oh!",
+			"Pew.",
+			"So,",
+			"- What?",
+			//"- Mm-hmm.",
 			"Hello everyone, welcome to my channel.",
 			//"Hi, everyone.",
 			"The next day",
+			"I'll be back.",
 			"I'll be right back.",
 			"I'll be back in a minute.",
-			"So, let's do this.",
 			"So, let's do that.",
+			"So, let's do this.",
+			"So, let's do it.",
 			"Well, I'm going to do it.",
 			"So, let's go ahead and do that.",
+			"I'm going to go ahead and do that.",
+			"So, I'm going to go ahead and do that.",
+			"So, we're going to do the same thing.",
+			"So, we're going to do that.",
+			"I'm going to...",
 			"So, we have the following.",
 			"I don't know what to do.",
 			"We don't know about the fill of our 20 pairs, but it's a big one.",
 			"We have 15 minutes left.",
 			"I'm going to bed.",
 			"I'm going to sleep.",
+			"I'm going to go to sleep",
 			"I'm going to go and get some water.",
 			"I'll be waiting for you at the station.",
 			"All right.",
 			"I'll go and get the money.",
 			"I love you.",
+			"So, what is the relationship between the two?",
 			"You're welcome.",
+			"Shit.",
 			"Amen.",
+			"what the hell is that sound?",
 			"I'm not a doctor.",
 			"let's go to the bathroom",
 			"I'm sorry. I'll go to the bathroom.",
+			"I'm going to the bathroom. I'll be right back.",
 			"I'm going to the hospital.",
 			"I'm going to the hospital. I'll be there in a minute.",
 			"I'm going to make a new one.",
 			"I'm going to write a new one.",
+			"I'm going to write this.",
+			`"I'm sorry.`,
+			"I'm sorry, I didn't mean to.",
 			"I'm sorry, I didn't mean to hurt you.",
 			"I'm sorry. I'm sorry.",
 			"I'm sorry, I'm sorry.",
@@ -223,14 +262,19 @@ func (stt *SpeechToText) isLikelyHallucination(
 		}
 
 		if len(t0) > EntropyDetectorLenMin {
-			entropy, err := entropy.Shannon(string(s.Text))
+			// Examples of what we are suppressing here:
+			// * "So, I'm going to write the value of the value of the value of the value of the value of"
+			entropy, err := entropy.Shannon(string(s.Text)[30:])
 			if err != nil {
 				logger.Errorf(ctx, "unable to calculate shannon entropy: %v", err)
 				return false
 			}
 
+			// Entropy:
+			// * "ue of the value of the value of the value of the value of" -> 3.176
+
 			if entropy < EntropyMin {
-				logger.Tracef(ctx, "entropy is too low, assuming a hallucination: %f < %f", entropy, EntropyMin)
+				logger.Tracef(ctx, "entropy is too low, assuming '%s' is a hallucination: %f < %f", s.Text, entropy, EntropyMin)
 				return true
 			}
 		}
@@ -298,7 +342,7 @@ func (*SpeechToText) AudioChannels(context.Context) (audio.Channel, error) {
 	return (*SpeechToText)(nil).AudioChannelsNoErr(), nil
 }
 
-func (*SpeechToText) AudioEncodingNoErr() audio.Encoding {
+func (*SpeechToText) AudioEncodingNoErr() audio.EncodingPCM {
 	return audio.EncodingPCM{
 		PCMFormat:  audio.PCMFormatFloat32LE,
 		SampleRate: 16000,
@@ -431,6 +475,77 @@ func (stt *SpeechToText) WriteAudio(
 	})
 }
 
+func (stt *SpeechToText) checkIfVoiceActive(
+	ctx context.Context,
+	buf []byte,
+) (_ret bool, _err error) {
+	logger.Tracef(ctx, "checkIfVoiceActive")
+	defer func() { logger.Tracef(ctx, "/checkIfVoiceActive: %v %v", _ret, _err) }()
+
+	vadChannels, err := stt.VAD.Channels(ctx)
+	if err != nil {
+		return true, fmt.Errorf("unable to get the VAD's amount of channels: %w", err)
+	}
+
+	vadEncoding, err := stt.VAD.Encoding(ctx)
+	if err != nil {
+		return true, fmt.Errorf("unable to get the VAD's encoding: %w", err)
+	}
+
+	vadEncodingPCM, ok := vadEncoding.(audio.EncodingPCM)
+	if !ok {
+		return true, fmt.Errorf("VAD expects a non-PCM format: %T", vadEncoding)
+	}
+
+	sttEncoding := stt.AudioEncodingNoErr()
+
+	resampler, err := resampler.NewResampler(
+		resampler.Format{
+			Channels:   stt.AudioChannelsNoErr(),
+			SampleRate: sttEncoding.SampleRate,
+			PCMFormat:  sttEncoding.PCMFormat,
+		},
+		bytes.NewReader(buf),
+		resampler.Format{
+			Channels:   vadChannels,
+			SampleRate: vadEncodingPCM.SampleRate,
+			PCMFormat:  vadEncodingPCM.PCMFormat,
+		},
+	)
+	if err != nil {
+		return true, fmt.Errorf("unable to initialize a resampler: %w", err)
+	}
+
+	vadSampleSize := vadEncoding.BytesPerSample() * uint(vadChannels)
+	sttSampleSize := sttEncoding.BytesPerSample() * uint(stt.AudioChannelsNoErr())
+	vadBufferLength := 1 + 2*float64(len(buf))*float64(vadEncodingPCM.SampleRate)/float64(sttEncoding.SampleRate)*float64(vadSampleSize)/float64(sttSampleSize) // "2*" just to make sure no rounding error causes any problems; the same go for '1+"
+
+	if cap(stt.VADBuffer) < int(vadBufferLength) {
+		stt.VADBuffer = make([]byte, int(vadBufferLength))
+	} else {
+		stt.VADBuffer = stt.VADBuffer[:int(vadBufferLength)]
+	}
+
+	n, err := resampler.Read(stt.VADBuffer)
+	if err != nil {
+		return true, fmt.Errorf("unable to resample: %w", err)
+	}
+
+	if n >= len(stt.VADBuffer) {
+		return true, fmt.Errorf("internal error: buffer length is calculated incorrectly: %d >= %d", n, len(stt.VADBuffer))
+	}
+
+	msg := stt.VADBuffer[:n]
+
+	prob, err := stt.VAD.VoiceProbability(ctx, msg)
+	if err != nil {
+		return true, fmt.Errorf("unable to detect voice probability: %w", err)
+	}
+
+	logger.Debugf(ctx, "VAD result: %f, thus %f?>?%f:%v", prob, prob, stt.VADThreshold, prob > stt.VADThreshold)
+	return prob > stt.VADThreshold, nil
+}
+
 func (stt *SpeechToText) commitAudio(
 	ctx context.Context,
 ) (_err error) {
@@ -449,6 +564,34 @@ func (stt *SpeechToText) commitAudio(
 	})
 	if buf == nil {
 		return nil
+	}
+
+	bufferEndTSDiff := getDurationFromBytes(uint64(len(buf)))
+
+	oldCommittingPosBytes := stt.CommittingPosBytes
+	defer func() {
+		if stt.CommittingPosBytes != oldCommittingPosBytes {
+			stt.VADCacheAlreadyHasVoice = false
+		}
+	}()
+	logger.Debugf(
+		ctx,
+		"stt.VADThreshold > 0 && !stt.VADCacheAlreadyHasVoice: %v > 0 && !%v: %v",
+		stt.VADThreshold, stt.VADCacheAlreadyHasVoice,
+		stt.VADThreshold > 0 && !stt.VADCacheAlreadyHasVoice,
+	)
+	if stt.VADThreshold > 0 && !stt.VADCacheAlreadyHasVoice {
+		voiceIsActive, err := stt.checkIfVoiceActive(ctx, buf)
+		if err != nil {
+			logger.Errorf(ctx, "unable to detect if voice is active: %v", err)
+		}
+		if !voiceIsActive {
+			stt.NoUsefulSegmentsIterations = 0
+			stt.CommittingPos += bufferEndTSDiff
+			stt.CommittingPosBytes += uint64(len(buf))
+			return nil
+		}
+		stt.VADCacheAlreadyHasVoice = true
 	}
 
 	samples := convertBytesToFloat32Slice(buf)
@@ -484,6 +627,9 @@ func (stt *SpeechToText) commitAudio(
 	numSegments := stt.Context.NumSegments()
 	logger.Debugf(ctx, "numSegments == %d", numSegments)
 	if numSegments == 0 {
+		stt.NoUsefulSegmentsIterations = 0
+		stt.CommittingPos += bufferEndTSDiff
+		stt.CommittingPosBytes += uint64(len(buf))
 		return nil
 	}
 
@@ -502,7 +648,6 @@ func (stt *SpeechToText) commitAudio(
 		stt.LastSegmentStartTS = lastSegmentStartTS
 		stt.LastSegmentEndTS = lastSegmentEndTS
 	}
-	bufferEndTSDiff := getDurationFromBytes(uint64(len(buf)))
 
 	lastCommittingSegmentIdx := numSegments - 2
 	tailGapLength := bufferEndTSDiff - lastSegmentEndTS
@@ -531,7 +676,7 @@ func (stt *SpeechToText) commitAudio(
 			continue
 		}
 		if stt.isLikelyHallucination(ctx, segment) {
-			logger.Debugf(ctx, "likely a hallucination, skipping")
+			logger.Debugf(ctx, "likely a hallucination: '%s', skipping", segment.Text)
 			continue
 		}
 		if stt.writeSegment(ctx, segment, i <= lastCommittingSegmentIdx) {

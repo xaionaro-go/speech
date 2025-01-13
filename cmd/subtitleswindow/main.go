@@ -40,6 +40,7 @@ func main() {
 	playbackFlag := pflag.Bool("audio-loopback", false, "[debug] instead of running a subtitles window, playback the audio")
 	remoteFlag := pflag.String("remote-addr", "", "use a remote speech-to-text engine, instead of running it locally")
 	textAlignmentFlag := pflag.String("text-align", "center", "allowed values: left, center, right")
+	vadThreshold := pflag.Float64("vad-threshold", 0.5, "set to <=0 to disable VAD")
 	gpuFlag := pflag.Int("gpu", -1, "")
 	pflag.Parse()
 	if pflag.NArg() < 1 || pflag.NArg() > 2 {
@@ -84,7 +85,7 @@ func main() {
 		}
 	}
 
-	audioEnc := (*whisper.SpeechToText)(nil).AudioEncodingNoErr().(audio.EncodingPCM)
+	audioEnc := (*whisper.SpeechToText)(nil).AudioEncodingNoErr()
 	audioChannels := (*whisper.SpeechToText)(nil).AudioChannelsNoErr()
 
 	var audioInput io.Reader
@@ -126,7 +127,7 @@ func main() {
 	}
 
 	app := app.New()
-	w, err := subtitleswindow.New(ctx, app, "Subtitles", textAlignment, audioInput, *remoteFlag, *gpuFlag, whisperModel, speech.Language(*langFlag), *shouldTranslateFlag)
+	w, err := subtitleswindow.New(ctx, app, "Subtitles", textAlignment, audioInput, *remoteFlag, *gpuFlag, whisperModel, speech.Language(*langFlag), *shouldTranslateFlag, *vadThreshold)
 	if err != nil {
 		panic(err)
 	}

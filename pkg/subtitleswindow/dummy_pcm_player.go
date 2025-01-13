@@ -40,11 +40,7 @@ func (r *dummyPCMPlayer) PlayPCM(
 ) (audio.PlayStream, error) {
 	ctx := context.TODO()
 	logger.Debugf(ctx, "PlayPCM(%v, %v, %v, %v, reader)", sampleRate, channels, format, bufferSize)
-	requiredEncoding := (*whisper.SpeechToText)(nil).AudioEncodingNoErr()
-	requiredPCMEncoding, ok := requiredEncoding.(audio.EncodingPCM)
-	if !ok {
-		return nil, fmt.Errorf("the transcriptor requires a non-PCM encoding: %#+v", requiredEncoding)
-	}
+	requiredPCMEncoding := (*whisper.SpeechToText)(nil).AudioEncodingNoErr()
 
 	myFormat := resampler.Format{
 		Channels:   channels,

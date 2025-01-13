@@ -194,6 +194,7 @@ func (srv *Server) NewContext(
 				goconv.SamplingStrategyFromGRPC(backend.Whisper.GetSamplingStrategy()),
 				req.GetShouldTranslate(),
 				goconv.AlignmentAheadsPresetFromGRPC(backend.Whisper.GetAlignmentAheadsPreset()),
+				float64(req.GetVadThreshold()),
 				cfg.WhisperOptions...,
 			)
 			if err != nil {

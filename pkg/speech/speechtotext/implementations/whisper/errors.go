@@ -26,3 +26,11 @@ type ErrModelCannotTranslate struct{}
 func (ErrModelCannotTranslate) Error() string {
 	return "the provided model cannot translate"
 }
+
+type ErrInitVAD struct {
+	Err error
+}
+
+func (e ErrInitVAD) Error() string {
+	return fmt.Sprintf("unable to initialize VAD: %v", e.Err)
+}

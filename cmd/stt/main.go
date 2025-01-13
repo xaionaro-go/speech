@@ -39,6 +39,7 @@ func main() {
 	useGPUFlag := pflag.Bool("use-gpu", true, "")
 	remoteFlag := pflag.String("remote-addr", "", "use a remote speech-to-text engine, instead of running it locally")
 	shouldTranslateFlag := pflag.Bool("translate", false, "")
+	vadThreshold := pflag.Float64("vad-threshold", 0.5, "set to <=0 to disable VAD")
 	printTimestampsFlag := pflag.Bool("print-timestamps", false, "")
 	printTokenTimestampsFlag := pflag.Bool("print-token-timestamps", false, "")
 	printConfidencesFlag := pflag.Bool("print-confidences", false, "")
@@ -88,6 +89,7 @@ func main() {
 			ModelBytes:      whisperModel,
 			Language:        *langFlag,
 			ShouldTranslate: *shouldTranslateFlag,
+			VadThreshold:    float32(*vadThreshold),
 			Backend: &speechtotext_grpc.NewContextRequest_Whisper{
 				Whisper: &speechtotext_grpc.WhisperOptions{
 					SamplingStrategy:      goconv.SamplingStrategyToGRPC(whisper.SamplingStrategyGreedy),
@@ -104,6 +106,7 @@ func main() {
 			whisper.SamplingStrategyGreedy,
 			*shouldTranslateFlag,
 			syswhisper.AlignmentAheadsPreset(alignmentAheadPresentFlag),
+			*vadThreshold,
 			opts...,
 		)
 	}

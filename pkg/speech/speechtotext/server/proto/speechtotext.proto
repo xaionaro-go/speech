@@ -50,8 +50,9 @@ message NewContextRequest {
 	bytes modelBytes = 1;
     string language = 2;
 	bool shouldTranslate = 3;
+	float vadThreshold = 4;
 	oneof Backend {
-		WhisperOptions whisper = 4;
+		WhisperOptions whisper = 5;
 	};
 }
 

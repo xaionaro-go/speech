@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 replace github.com/asticode/go-astiav v0.30.0 => github.com/xaionaro-go/astiav v0.0.0-20250106205037-a1605f324663
 
-replace github.com/mutablelogic/go-whisper v0.0.22-0.20241221210700-ba095bdd5196 => github.com/xaionaro-go/whisper v0.0.0-20250113100454-120b8b0488a2
+replace github.com/mutablelogic/go-whisper v0.0.22-0.20241221210700-ba095bdd5196 => github.com/xaionaro-go/whisper v0.0.0-20250113112709-f6b19475a1f1
 
 require (
 	fyne.io/fyne/v2 v2.5.3
@@ -14,6 +14,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
+	github.com/josharian/fvad v0.0.0-20201126043145-6cba2db1e3b8
 	github.com/mutablelogic/go-whisper v0.0.22-0.20241221210700-ba095bdd5196
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.10.0

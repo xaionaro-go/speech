@@ -34,6 +34,7 @@ func New(
 	whisperModel []byte,
 	language speech.Language,
 	shouldTranslate bool,
+	vadThreshold float64,
 ) (_ret *SubtitlesWindow, _err error) {
 	logger.Debugf(ctx, "New(ctx, app, '%s', audioInput, len:%d)", title, len(whisperModel))
 	defer func() {
@@ -48,7 +49,7 @@ func New(
 	w.Window.Resize(fyne.NewSize(960, 600))
 
 	var err error
-	w.speechRecognizer, err = newSpeechRecognizer(ctx, textAlignment, audioInput, remoteAddrWhisper, gpu, whisperModel, language, shouldTranslate, w)
+	w.speechRecognizer, err = newSpeechRecognizer(ctx, textAlignment, audioInput, remoteAddrWhisper, gpu, whisperModel, language, shouldTranslate, vadThreshold, w)
 	logger.Debugf(ctx, "newSpeechRecognizer(): %#+v %#+v", w.speechRecognizer, err)
 	if err != nil {
 		w.Window.Close()

@@ -54,6 +54,7 @@ func newSpeechRecognizer(
 	whisperModel []byte,
 	language speech.Language,
 	shouldTranslate bool,
+	vadThreshold float64,
 	window *SubtitlesWindow,
 ) (*speechRecognizer, error) {
 	var (
@@ -73,6 +74,7 @@ func newSpeechRecognizer(
 			whisper.SamplingStrategyBreamSearch,
 			shouldTranslate,
 			syswhisper.AlignmentAheadsPresetNone,
+			vadThreshold,
 			opts...,
 		)
 	} else {
@@ -81,6 +83,7 @@ func newSpeechRecognizer(
 			ModelBytes:      whisperModel,
 			Language:        string(language),
 			ShouldTranslate: shouldTranslate,
+			VadThreshold:    float32(vadThreshold),
 			Backend: &speechtotext_grpc.NewContextRequest_Whisper{
 				Whisper: &speechtotext_grpc.WhisperOptions{
 					SamplingStrategy:      goconv.SamplingStrategyToGRPC(whisper.SamplingStrategyGreedy),
