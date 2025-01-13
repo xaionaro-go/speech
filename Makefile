@@ -72,7 +72,7 @@ LINKER_FLAGS_DARWIN?=$(LINKER_FLAGS)
 LINKER_FLAGS_LINUX?=$(LINKER_FLAGS)
 LINKER_FLAGS_WINDOWS?=$(LINKER_FLAGS) '-extldflags=$(WINDOWS_EXTLINKER_FLAGS)'
 
-PKG_CONFIG_PATH?="$(PWD)"/pkg/speech/speechtotext/implementations/whisper/pkgconfig/
+PKG_CONFIG_PATH:="$(PWD)"/pkg/speech/speechtotext/implementations/whisper/pkgconfig/:"$(PKG_CONFIG_PATH)"
 WINDOWS_CGO_FLAGS?=
 
 ifeq ($(GOVERSION_GE_1_23),true) # see https://github.com/wlynxg/anet/?tab=readme-ov-file#how-to-build-with-go-1230-or-later
@@ -97,7 +97,7 @@ signer-sign-streampanel-arm64-apk: priv/android-apk.keystore
 deps: thirdparty/whisper.cpp/CMakeLists.txt pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI)
 
 pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc:
-	go generate ./pkg/speech/speechtotext/implementations/whisper/pkgconfig/...
+	PKG_CONFIG_PATH= go generate ./pkg/speech/speechtotext/implementations/whisper/pkgconfig/...
 
 thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI):
 	mkdir -p thirdparty/whisper.cpp/build thirdparty/whisper.cpp/examples/whisper.android.java/app/src/main/jni/whisper/build
