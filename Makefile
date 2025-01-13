@@ -79,7 +79,7 @@ ifeq ($(GOVERSION_GE_1_23),true) # see https://github.com/wlynxg/anet/?tab=readm
 	LINKER_FLAGS_ANDROID+=-checklinkname=0
 endif
 
-all: stt-$(shell go env GOOS)-$(shell go env GOARCH) subtitleswindow-$(shell go env GOOS)-$(shell go env GOARCH)
+all: stt-$(shell go env GOOS)-$(shell go env GOARCH) sttd-$(shell go env GOOS)-$(shell go env GOARCH) subtitleswindow-$(shell go env GOOS)-$(shell go env GOARCH)
 
 thirdparty/whisper.cpp/CMakeLists.txt:
 	git submodule update --init

@@ -8,6 +8,11 @@ Currently, we provide API for using Whisper directly and/or for using whisper vi
 
 # Quick start
 
+Install dependencies
+```sh
+apt install -y libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libswscale-dev libsrt-openssl-dev libssl-dev libasound2-dev libxxf86vm-dev make cmake nvidia-cuda-toolkit cuda-toolkit-12-2 libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev
+```
+
 ### `stt`
 
 If you use Linux:
@@ -16,7 +21,7 @@ WHISPER_MODEL=medium ENABLE_CUDA=true make example-stt
 ```
 (keep in mind: the larger model is the more time it takes to warm up)
 
-It likely will fail to build, because you don't have CUDA libraries install. You need to install them. But if it will run; it will start listening the microphone, and you can start speaking. It should print the translation of your speech to English.
+It will start listening the microphone, and you can start speaking. It should print the translation of your speech to English.
 
 For example in my case:
 ```
