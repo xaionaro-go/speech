@@ -139,6 +139,8 @@ func (stt *SpeechToText) isLikelyHallucination(
 	t0 := strings.Trim(s.Text, " ")
 	t1 := strings.ReplaceAll(t0, "!", "")
 	t1 = strings.ReplaceAll(t1, ".", "")
+	t1 = strings.ReplaceAll(t1, "-", "")
+	t1 = strings.Trim(t1, " ")
 	switch {
 	case bytes.Equal(stt.ModelHash[:], ModelHashMedium[:]):
 		logger.Tracef(ctx, "hallucination check for medium")
@@ -154,13 +156,34 @@ func (stt *SpeechToText) isLikelyHallucination(
 		logger.Tracef(ctx, "hallucination check for large-v3")
 		switch t0 {
 		case "0.", "0.5.", "0.001.",
-			//"I'll be right back.",
-			"I'm sorry.",
+			"you",
+			"Hello everyone, welcome to my channel.",
+			//"Hi, everyone.",
+			"The next day",
+			"I'll be right back.",
+			"I'll be back in a minute.",
 			"So, let's do this.",
-			`"I'm sorry, I'm sorry."`,
-			`"The last time I saw you, I was in the bathroom."`,
 			"So, let's do that.",
+			"Well, I'm going to do it.",
+			"I'm going to bed.",
+			"I'm going to sleep.",
+			"I'm going to go and get some water.",
+			"I'll be waiting for you at the station.",
 			"All right.",
+			"I'll go and get the money.",
+			"I love you.",
+			"Amen.",
+			"I'm not a doctor.",
+			"let's go to the bathroom",
+			"I'm sorry. I'll go to the bathroom.",
+			"I'm going to the hospital.",
+			"I'm going to the hospital. I'll be there in a minute.",
+			"I'm going to make a new one.",
+			"I'm going to write a new one.",
+			"I'm sorry, I didn't mean to hurt you.",
+			"I'm sorry. I'm sorry.",
+			"I'm sorry, I'm sorry.",
+			"I'm sorry, I'm sorry. I'm sorry.",
 			"I'm sorry. I'm sorry. I'm sorry.":
 			return true
 		}
@@ -168,9 +191,15 @@ func (stt *SpeechToText) isLikelyHallucination(
 		case "Thank you for watching", "Thanks for watching",
 			"Thank you for watching Please subscribe to my channel",
 			"Thank you",
+			"I'm sorry",
 			"Bye",
 			"Subtitles by the Amaraorg community",
 			"Okay",
+			"The end",
+			"The End",
+			"THE END",
+			"I'll go to the bathroom",
+			"I'm going to the bathroom",
 			"":
 			return true
 		}
@@ -179,6 +208,10 @@ func (stt *SpeechToText) isLikelyHallucination(
 		case strings.Contains(s.Text, "So, this is the first step"):
 			return true
 		case strings.Contains(s.Text, "So, we have a function of 0.001"):
+			return true
+		case strings.HasPrefix(t0, `"`) && strings.HasSuffix(t0, `"`):
+			return true
+		case strings.HasPrefix(t0, "End of"):
 			return true
 		}
 
@@ -303,6 +336,9 @@ func (stt *SpeechToText) writeSegmentNoLock(
 		return false
 	case strings.HasPrefix(trimmedText, "*") && strings.HasSuffix(trimmedText, "*"):
 		// e.g.: *thump*
+		return false
+	case strings.HasPrefix(trimmedText, "♪") && strings.HasSuffix(trimmedText, "♪"):
+		// e.g.: ♪ ♪
 		return false
 	}
 
