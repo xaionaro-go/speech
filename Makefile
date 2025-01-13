@@ -82,7 +82,7 @@ endif
 all: stt-$(shell go env GOOS)-$(shell go env GOARCH) subtitleswindow-$(shell go env GOOS)-$(shell go env GOARCH)
 
 thirdparty/whisper.cpp/CMakeLists.txt:
-	git submodule update thirdparty/whisper.cpp
+	git submodule update --init
 
 build:
 	mkdir -p build
