@@ -27,6 +27,7 @@ func New(
 	ctx context.Context,
 	app fyne.App,
 	title string,
+	textAlignment fyne.TextAlign,
 	audioInput io.Reader,
 	remoteAddrWhisper string,
 	gpu int,
@@ -44,10 +45,10 @@ func New(
 	w.Container = container.NewStack()
 	w.Window = app.NewWindow(title)
 	w.Window.SetContent(container.NewVScroll(w.Container))
-	w.Window.Resize(fyne.NewSize(1200, 600))
+	w.Window.Resize(fyne.NewSize(960, 600))
 
 	var err error
-	w.speechRecognizer, err = newSpeechRecognizer(ctx, audioInput, remoteAddrWhisper, gpu, whisperModel, language, shouldTranslate, w)
+	w.speechRecognizer, err = newSpeechRecognizer(ctx, textAlignment, audioInput, remoteAddrWhisper, gpu, whisperModel, language, shouldTranslate, w)
 	logger.Debugf(ctx, "newSpeechRecognizer(): %#+v %#+v", w.speechRecognizer, err)
 	if err != nil {
 		w.Window.Close()

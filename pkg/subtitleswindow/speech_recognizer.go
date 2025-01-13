@@ -33,19 +33,21 @@ type subtitlePiece struct {
 }
 
 type speechRecognizer struct {
-	ctx          context.Context
-	cancelFunc   context.CancelFunc
-	renderLocker xsync.Gorex
-	window       *SubtitlesWindow
-	audioInput   io.Reader
-	whisper      speech.ToText
-	subtitles    []subtitlePiece
-	onceCloser   onceCloser
+	ctx           context.Context
+	textAlignment fyne.TextAlign
+	cancelFunc    context.CancelFunc
+	renderLocker  xsync.Gorex
+	window        *SubtitlesWindow
+	audioInput    io.Reader
+	whisper       speech.ToText
+	subtitles     []subtitlePiece
+	onceCloser    onceCloser
 }
 
 // audioInput is supposed to be PCM Float32LE 16000Hz 1ch
 func newSpeechRecognizer(
 	ctx context.Context,
+	textAlignment fyne.TextAlign,
 	audioInput io.Reader,
 	remoteAddrWhisper string,
 	gpu int,
@@ -93,11 +95,12 @@ func newSpeechRecognizer(
 
 	ctx, cancelFn := context.WithCancel(ctx)
 	r := &speechRecognizer{
-		ctx:        ctx,
-		cancelFunc: cancelFn,
-		window:     window,
-		audioInput: audioInput,
-		whisper:    stt,
+		ctx:           ctx,
+		textAlignment: textAlignment,
+		cancelFunc:    cancelFn,
+		window:        window,
+		audioInput:    audioInput,
+		whisper:       stt,
 	}
 	observability.Go(ctx, func() {
 		defer r.Close()
@@ -237,7 +240,7 @@ func (r *speechRecognizer) render(
 				var style widget.RichTextStyle
 				if piece.IsFinal {
 					style = widget.RichTextStyle{
-						Alignment: fyne.TextAlignCenter,
+						Alignment: r.textAlignment,
 						ColorName: theme.ColorNameForeground,
 						Inline:    false,
 						SizeName:  theme.SizeNameHeadingText,
@@ -252,7 +255,7 @@ func (r *speechRecognizer) render(
 					}
 				} else {
 					style = widget.RichTextStyle{
-						Alignment: fyne.TextAlignCenter,
+						Alignment: r.textAlignment,
 						ColorName: theme.ColorNameHyperlink,
 						Inline:    false,
 						SizeName:  theme.SizeNameHeadingText,

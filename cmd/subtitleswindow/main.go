@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"github.com/facebookincubator/go-belt"
 	"github.com/facebookincubator/go-belt/tool/logger"
@@ -38,6 +39,7 @@ func main() {
 	netPprofAddr := pflag.String("net-pprof-listen-addr", "", "an address to listen for incoming net/pprof connections")
 	playbackFlag := pflag.Bool("audio-loopback", false, "[debug] instead of running a subtitles window, playback the audio")
 	remoteFlag := pflag.String("remote-addr", "", "use a remote speech-to-text engine, instead of running it locally")
+	textAlignmentFlag := pflag.String("text-align", "center", "allowed values: left, center, right")
 	gpuFlag := pflag.Int("gpu", -1, "")
 	pflag.Parse()
 	if pflag.NArg() < 1 || pflag.NArg() > 2 {
@@ -61,6 +63,16 @@ func main() {
 
 	if *netPprofAddr != "" {
 		observability.Go(ctx, func() { l.Error(http.ListenAndServe(*netPprofAddr, nil)) })
+	}
+
+	var textAlignment fyne.TextAlign
+	switch *textAlignmentFlag {
+	case "left":
+		textAlignment = fyne.TextAlignLeading
+	case "center":
+		textAlignment = fyne.TextAlignCenter
+	case "right":
+		textAlignment = fyne.TextAlignTrailing
 	}
 
 	var whisperModel []byte
@@ -114,7 +126,7 @@ func main() {
 	}
 
 	app := app.New()
-	w, err := subtitleswindow.New(ctx, app, "Subtitles", audioInput, *remoteFlag, *gpuFlag, whisperModel, speech.Language(*langFlag), *shouldTranslateFlag)
+	w, err := subtitleswindow.New(ctx, app, "Subtitles", textAlignment, audioInput, *remoteFlag, *gpuFlag, whisperModel, speech.Language(*langFlag), *shouldTranslateFlag)
 	if err != nil {
 		panic(err)
 	}
