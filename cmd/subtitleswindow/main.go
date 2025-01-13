@@ -38,6 +38,7 @@ func main() {
 	netPprofAddr := pflag.String("net-pprof-listen-addr", "", "an address to listen for incoming net/pprof connections")
 	playbackFlag := pflag.Bool("audio-loopback", false, "[debug] instead of running a subtitles window, playback the audio")
 	remoteFlag := pflag.String("remote-addr", "", "use a remote speech-to-text engine, instead of running it locally")
+	gpuFlag := pflag.Int("gpu", -1, "")
 	pflag.Parse()
 	if pflag.NArg() < 1 || pflag.NArg() > 2 {
 		syntaxExit("expected one or two arguments: whisper-model-path [input]")
@@ -113,7 +114,7 @@ func main() {
 	}
 
 	app := app.New()
-	w, err := subtitleswindow.New(ctx, app, "Subtitles", audioInput, *remoteFlag, whisperModel, speech.Language(*langFlag), *shouldTranslateFlag)
+	w, err := subtitleswindow.New(ctx, app, "Subtitles", audioInput, *remoteFlag, *gpuFlag, whisperModel, speech.Language(*langFlag), *shouldTranslateFlag)
 	if err != nil {
 		panic(err)
 	}

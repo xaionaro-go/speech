@@ -48,6 +48,7 @@ func newSpeechRecognizer(
 	ctx context.Context,
 	audioInput io.Reader,
 	remoteAddrWhisper string,
+	gpu int,
 	whisperModel []byte,
 	language speech.Language,
 	shouldTranslate bool,
@@ -59,6 +60,10 @@ func newSpeechRecognizer(
 	)
 	if remoteAddrWhisper == "" {
 		logger.Debugf(ctx, "initializing a local context")
+		var opts whisper.Options
+		if gpu >= 0 {
+			opts = append(opts, whisper.OptionGPUDeviceID(gpu))
+		}
 		stt, err = whisper.New(
 			ctx,
 			whisperModel,
@@ -66,9 +71,9 @@ func newSpeechRecognizer(
 			whisper.SamplingStrategyBreamSearch,
 			shouldTranslate,
 			syswhisper.AlignmentAheadsPresetNone,
+			opts...,
 		)
 	} else {
-		logger.Debugf(ctx, "initializing a remote context")
 		logger.Debugf(ctx, "initializing a remote context")
 		stt, err = client.New(ctx, remoteAddrWhisper, &speechtotext_grpc.NewContextRequest{
 			ModelBytes:      whisperModel,

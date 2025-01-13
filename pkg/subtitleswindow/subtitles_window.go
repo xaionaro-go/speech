@@ -29,6 +29,7 @@ func New(
 	title string,
 	audioInput io.Reader,
 	remoteAddrWhisper string,
+	gpu int,
 	whisperModel []byte,
 	language speech.Language,
 	shouldTranslate bool,
@@ -46,7 +47,7 @@ func New(
 	w.Window.Resize(fyne.NewSize(1200, 600))
 
 	var err error
-	w.speechRecognizer, err = newSpeechRecognizer(ctx, audioInput, remoteAddrWhisper, whisperModel, language, shouldTranslate, w)
+	w.speechRecognizer, err = newSpeechRecognizer(ctx, audioInput, remoteAddrWhisper, gpu, whisperModel, language, shouldTranslate, w)
 	logger.Debugf(ctx, "newSpeechRecognizer(): %#+v %#+v", w.speechRecognizer, err)
 	if err != nil {
 		w.Window.Close()
