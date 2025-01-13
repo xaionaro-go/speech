@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/facebookincubator/go-belt"
 	"github.com/facebookincubator/go-belt/tool/logger"
 	"github.com/lazybeaver/entropy"
 	"github.com/mutablelogic/go-whisper/pkg/schema"
@@ -33,6 +34,7 @@ const (
 	DiscardFromSingleIterationIfBufferBigger = 10 * time.Second
 	IterationInterval                        = time.Second
 	PreserveHeadingDuration                  = time.Second
+	VADMinVoiceDuration                      = 150 * time.Millisecond
 
 	EntropyMin            = 3.63
 	EntropyDetectorLenMin = 80
@@ -49,7 +51,6 @@ type SpeechToText struct {
 	CommittingBuffer []byte
 	TempBuffer       []byte
 
-	CommittingPos      time.Duration
 	CommittingPosBytes uint64
 
 	IsFirstSpeakerSpeaking bool
@@ -65,7 +66,7 @@ type SpeechToText struct {
 	VADThreshold float64
 	VADBuffer    []byte
 
-	VADCacheAlreadyHasVoice bool
+	VADCacheVoiceFoundAt time.Duration
 
 	LastSegmentString  string
 	LastSegmentStartTS time.Duration
@@ -180,14 +181,13 @@ func (stt *SpeechToText) isLikelyHallucination(
 			"Oh!",
 			"Pew.",
 			"So,",
+			"Thanks.",
 			"- What?",
 			//"- Mm-hmm.",
 			"Hello everyone, welcome to my channel.",
 			//"Hi, everyone.",
 			"The next day",
-			"I'll be back.",
-			"I'll be right back.",
-			"I'll be back in a minute.",
+			"So, that's it.",
 			"So, let's do that.",
 			"So, let's do this.",
 			"So, let's do it.",
@@ -202,11 +202,19 @@ func (stt *SpeechToText) isLikelyHallucination(
 			"I don't know what to do.",
 			"We don't know about the fill of our 20 pairs, but it's a big one.",
 			"We have 15 minutes left.",
+			"I'll be back.",
+			"I'll be back in a minute.",
+			"I'll be right back.",
+			"I'll go and get the baby.",
+			"Sleep.",
 			"I'm going to bed.",
 			"I'm going to sleep.",
 			"I'm going to go to sleep",
 			"I'm going to go and get some water.",
 			"I'll be waiting for you at the station.",
+			"So, we have a function called,",
+			"So, we have a function called the,",
+			"So, we're going to do a little bit of a loop.",
 			"All right.",
 			"I'll go and get the money.",
 			"I love you.",
@@ -216,6 +224,7 @@ func (stt *SpeechToText) isLikelyHallucination(
 			"Amen.",
 			"what the hell is that sound?",
 			"I'm not a doctor.",
+			"You're going to be a good boy.",
 			"let's go to the bathroom",
 			"I'm sorry. I'll go to the bathroom.",
 			"I'm going to the bathroom. I'll be right back.",
@@ -404,12 +413,13 @@ func (stt *SpeechToText) writeSegmentNoLock(
 
 	nonEmptyTokenCount := 0
 
+	committingPos := getDurationFromBytes(stt.CommittingPosBytes)
 	words := make([]speech.TranscriptToken, 0, len(s.Tokens))
 	for idx, token := range s.Tokens {
 		logger.Debugf(ctx, "token %d: %#+v", idx, token)
 		words = append(words, speech.TranscriptToken{
-			StartTime:  token.T0 + stt.CommittingPos,
-			EndTime:    token.T1 + stt.CommittingPos,
+			StartTime:  token.T0 + committingPos,
+			EndTime:    token.T1 + committingPos,
 			Text:       speech.Text(token.Text),
 			Confidence: token.P,
 			Speaker:    speaker,
@@ -466,9 +476,8 @@ func (stt *SpeechToText) WriteAudio(
 			copy(stt.NextBuffer, stt.NextBuffer[limit/2:])
 			stt.NextBuffer = stt.NextBuffer[:limit/2]
 
-			stt.CommittingPos += BufferLimit / 2
 			stt.CommittingPosBytes += limit / 2
-			logger.Debugf(ctx, "cutting the buffer in half (newPos: %v)", stt.CommittingPos)
+			logger.Debugf(ctx, "cutting the buffer in half (newPos: %v)", stt.CommittingPosBytes)
 		}
 
 		return nil
@@ -478,23 +487,23 @@ func (stt *SpeechToText) WriteAudio(
 func (stt *SpeechToText) checkIfVoiceActive(
 	ctx context.Context,
 	buf []byte,
-) (_ret bool, _err error) {
+) (_ret0 bool, _ret1 time.Duration, _err error) {
 	logger.Tracef(ctx, "checkIfVoiceActive")
-	defer func() { logger.Tracef(ctx, "/checkIfVoiceActive: %v %v", _ret, _err) }()
+	defer func() { logger.Tracef(ctx, "/checkIfVoiceActive: %v %v %v", _ret0, _ret1, _err) }()
 
 	vadChannels, err := stt.VAD.Channels(ctx)
 	if err != nil {
-		return true, fmt.Errorf("unable to get the VAD's amount of channels: %w", err)
+		return true, 0, fmt.Errorf("unable to get the VAD's amount of channels: %w", err)
 	}
 
 	vadEncoding, err := stt.VAD.Encoding(ctx)
 	if err != nil {
-		return true, fmt.Errorf("unable to get the VAD's encoding: %w", err)
+		return true, 0, fmt.Errorf("unable to get the VAD's encoding: %w", err)
 	}
 
 	vadEncodingPCM, ok := vadEncoding.(audio.EncodingPCM)
 	if !ok {
-		return true, fmt.Errorf("VAD expects a non-PCM format: %T", vadEncoding)
+		return true, 0, fmt.Errorf("VAD expects a non-PCM format: %T", vadEncoding)
 	}
 
 	sttEncoding := stt.AudioEncodingNoErr()
@@ -513,7 +522,7 @@ func (stt *SpeechToText) checkIfVoiceActive(
 		},
 	)
 	if err != nil {
-		return true, fmt.Errorf("unable to initialize a resampler: %w", err)
+		return true, 0, fmt.Errorf("unable to initialize a resampler: %w", err)
 	}
 
 	vadSampleSize := vadEncoding.BytesPerSample() * uint(vadChannels)
@@ -528,22 +537,22 @@ func (stt *SpeechToText) checkIfVoiceActive(
 
 	n, err := resampler.Read(stt.VADBuffer)
 	if err != nil {
-		return true, fmt.Errorf("unable to resample: %w", err)
+		return true, 0, fmt.Errorf("unable to resample: %w", err)
 	}
 
 	if n >= len(stt.VADBuffer) {
-		return true, fmt.Errorf("internal error: buffer length is calculated incorrectly: %d >= %d", n, len(stt.VADBuffer))
+		return true, 0, fmt.Errorf("internal error: buffer length is calculated incorrectly: %d >= %d", n, len(stt.VADBuffer))
 	}
 
 	msg := stt.VADBuffer[:n]
 
-	prob, err := stt.VAD.VoiceProbability(ctx, msg)
+	maxConfidence, foundAt, err := stt.VAD.FindNextVoice(ctx, msg, stt.VADThreshold, VADMinVoiceDuration)
 	if err != nil {
-		return true, fmt.Errorf("unable to detect voice probability: %w", err)
+		return true, 0, fmt.Errorf("unable to detect voice probability: %w", err)
 	}
 
-	logger.Debugf(ctx, "VAD result: %f, thus %f?>?%f:%v", prob, prob, stt.VADThreshold, prob > stt.VADThreshold)
-	return prob > stt.VADThreshold, nil
+	logger.Debugf(ctx, "VAD result: %f, thus %f?>?%f:%v", maxConfidence, maxConfidence, stt.VADThreshold, maxConfidence > stt.VADThreshold)
+	return maxConfidence > stt.VADThreshold, foundAt, nil
 }
 
 func (stt *SpeechToText) commitAudio(
@@ -566,35 +575,81 @@ func (stt *SpeechToText) commitAudio(
 		return nil
 	}
 
+	committingBuf := buf
+	oldCommittedPosBytes := stt.CommittingPosBytes
+	defer stt.Mutex.Do(xsync.WithNoLogging(ctx, true), func() {
+		bytesDiff := stt.CommittingPosBytes - oldCommittedPosBytes
+		stt.TempBuffer = stt.TempBuffer[:0]
+		stt.TempBuffer = append(stt.TempBuffer, committingBuf[bytesDiff:]...)
+		stt.TempBuffer = append(stt.TempBuffer, stt.NextBuffer...)
+		stt.NextBuffer = stt.NextBuffer[:0]
+		stt.CommittingBuffer = stt.CommittingBuffer[:0]
+		stt.NextBuffer, stt.TempBuffer = stt.TempBuffer, stt.NextBuffer
+
+		assert(ctx, len(stt.NextBuffer)%4 == 0)
+
+		tsDiff := getDurationFromBytes(stt.CommittingPosBytes - oldCommittedPosBytes)
+		logger.Debugf(
+			ctx,
+			"considering final everything until %v (%v); leftover buffer: %d bytes (%v)",
+			tsDiff,
+			getDurationFromBytes(stt.CommittingPosBytes)+tsDiff,
+			len(stt.NextBuffer),
+			getDurationFromBytes(uint64(len(stt.NextBuffer))),
+		)
+	})
+
 	bufferEndTSDiff := getDurationFromBytes(uint64(len(buf)))
 
-	oldCommittingPosBytes := stt.CommittingPosBytes
-	defer func() {
-		if stt.CommittingPosBytes != oldCommittingPosBytes {
-			stt.VADCacheAlreadyHasVoice = false
-		}
-	}()
+	preserveBytes := getBytesPos(PreserveHeadingDuration)
+
+	discardBuffer := func() {
+		stt.NoUsefulSegmentsIterations = 0
+		stt.CommittingPosBytes += uint64(len(buf)) - preserveBytes
+	}
+
+	committingPos := getDurationFromBytes(stt.CommittingPosBytes)
 	logger.Debugf(
 		ctx,
-		"stt.VADThreshold > 0 && !stt.VADCacheAlreadyHasVoice: %v > 0 && !%v: %v",
-		stt.VADThreshold, stt.VADCacheAlreadyHasVoice,
-		stt.VADThreshold > 0 && !stt.VADCacheAlreadyHasVoice,
+		"stt.VADThreshold > 0 && stt.CommittingPos > stt.VADCacheAlreadyHasVoice: %v > 0 && %v>%v: %v",
+		stt.VADThreshold, committingPos, stt.VADCacheVoiceFoundAt,
+		stt.VADThreshold > 0 && committingPos > stt.VADCacheVoiceFoundAt,
 	)
-	if stt.VADThreshold > 0 && !stt.VADCacheAlreadyHasVoice {
-		voiceIsActive, err := stt.checkIfVoiceActive(ctx, buf)
+	if stt.VADThreshold > 0 && getDurationFromBytes(stt.CommittingPosBytes) > stt.VADCacheVoiceFoundAt {
+		voiceIsActive, foundAt, err := stt.checkIfVoiceActive(
+			belt.WithField(ctx, "subsystem", "VAD"),
+			buf,
+		)
 		if err != nil {
-			logger.Errorf(ctx, "unable to detect if voice is active: %v", err)
+			logger.Errorf(ctx, "VAD: unable to detect if voice is active: %v", err)
 		}
 		if !voiceIsActive {
-			stt.NoUsefulSegmentsIterations = 0
-			stt.CommittingPos += bufferEndTSDiff
-			stt.CommittingPosBytes += uint64(len(buf))
+			discardBuffer()
 			return nil
 		}
-		stt.VADCacheAlreadyHasVoice = true
+		stt.VADCacheVoiceFoundAt = getDurationFromBytes(stt.CommittingPosBytes) + foundAt
+
+		shouldCutAway := stt.VADCacheVoiceFoundAt - PreserveHeadingDuration - committingPos
+		logger.Debugf(ctx, "VAD: shouldCutAway == %v", shouldCutAway)
+		if shouldCutAway > 0 {
+			logger.Debugf(ctx, "VAD: cutting away %s from the beginning (%s -> %s)", shouldCutAway, bufferEndTSDiff, bufferEndTSDiff-shouldCutAway)
+			bytesDiff := getBytesPos(shouldCutAway)
+			stt.CommittingPosBytes += uint64(bytesDiff)
+			if int(bytesDiff) >= len(buf) {
+				logger.Errorf(ctx, "VAD: we removed the whole buffer; this was supposed to be impossible (we should preserve at least PreserveHeadingDuration): %d >= %d", int(bytesDiff), len(buf))
+				stt.NoUsefulSegmentsIterations = 0
+				return nil
+			}
+			buf = buf[bytesDiff:]
+		}
 	}
 
 	samples := convertBytesToFloat32Slice(buf)
+	defer func() {
+		// nothing is supposed to change `buf` length after `samples` is already created
+		assert(ctx, len(buf)/4 == len(samples), len(buf), len(buf)/4, len(samples))
+	}()
+
 	duration := getDurationFromBytes(uint64(len(buf)))
 	logger.Debugf(
 		ctx,
@@ -605,6 +660,7 @@ func (stt *SpeechToText) commitAudio(
 	)
 	stt.Iterations++
 	startCommittingTS := time.Now()
+	stt.Params.SetOffsetMS(0)
 	err := whisper.Whisper_full(
 		stt.Context,
 		stt.Params,
@@ -627,9 +683,7 @@ func (stt *SpeechToText) commitAudio(
 	numSegments := stt.Context.NumSegments()
 	logger.Debugf(ctx, "numSegments == %d", numSegments)
 	if numSegments == 0 {
-		stt.NoUsefulSegmentsIterations = 0
-		stt.CommittingPos += bufferEndTSDiff
-		stt.CommittingPosBytes += uint64(len(buf))
+		discardBuffer()
 		return nil
 	}
 
@@ -695,18 +749,14 @@ func (stt *SpeechToText) commitAudio(
 			hasHangingSegment,
 		)
 		if stt.NoUsefulSegmentsIterations >= DiscardIfNoUsefulSegmentsIterations || hasHangingSegment {
-			stt.NoUsefulSegmentsIterations = 0
-			stt.CommittingPos += bufferEndTSDiff
-			stt.CommittingPosBytes += uint64(len(buf))
+			discardBuffer()
 			return nil
 		}
 	}
 
 	logger.Debugf(ctx, "stt.Iterations == %d", stt.Iterations)
 	if stt.Iterations <= 2 { // warmup
-		stt.NoUsefulSegmentsIterations = 0
-		stt.CommittingPos += bufferEndTSDiff
-		stt.CommittingPosBytes += uint64(len(buf))
+		discardBuffer()
 		return nil
 	}
 
@@ -714,37 +764,18 @@ func (stt *SpeechToText) commitAudio(
 		tsDiff    time.Duration
 		bytesDiff uint64
 	)
-	if lastCommittingSegmentIdx < 0 {
-		tsDiff = 0
-		bytesDiff = 0
-	} else {
+
+	logger.Debugf(ctx, "resulting lastCommittingSegmentIdx == %d", lastCommittingSegmentIdx)
+	if lastCommittingSegmentIdx >= 0 {
 		lastCommittingSegment := stt.Context.Segment(lastCommittingSegmentIdx)
 		tsDiff = getLastTimestamp(lastCommittingSegment)
-		bytesDiff = getBytesPosDiff(stt.CommittingPos+tsDiff, stt.CommittingPosBytes)
+		bytesDiff = getBytesPos(tsDiff)
+		logger.Debugf(ctx, "lastCommittingSegment == %#+v; tsDiff == %s", lastCommittingSegment, tsDiff)
 	}
-	assert(ctx, bytesDiff%4 == 0)
 
-	stt.Mutex.Do(xsync.WithNoLogging(ctx, true), func() {
-		stt.TempBuffer = stt.TempBuffer[:0]
-		stt.TempBuffer = append(stt.TempBuffer, stt.CommittingBuffer[bytesDiff:]...)
-		stt.TempBuffer = append(stt.TempBuffer, stt.NextBuffer...)
-		stt.NextBuffer = stt.NextBuffer[:0]
-		stt.CommittingBuffer = stt.CommittingBuffer[:0]
-		stt.NextBuffer, stt.TempBuffer = stt.TempBuffer, stt.NextBuffer
-
-		assert(ctx, len(stt.NextBuffer)%4 == 0)
-
-		logger.Debugf(
-			ctx,
-			"considering final everything until %v (%v); leftover buffer: %d bytes (%v)",
-			tsDiff,
-			stt.CommittingPos+tsDiff,
-			len(stt.NextBuffer),
-			getDurationFromBytes(uint64(len(stt.NextBuffer))),
-		)
-	})
-
-	stt.CommittingPos += tsDiff
+	logger.Debugf(ctx, "committed up to %s (%d)", tsDiff, bytesDiff)
+	assert(ctx, int(bytesDiff) < len(buf), int(bytesDiff), len(buf))
+	assert(ctx, bytesDiff%4 == 0, bytesDiff)
 	stt.CommittingPosBytes += bytesDiff
 
 	return nil
@@ -753,11 +784,6 @@ func (stt *SpeechToText) commitAudio(
 func getDurationFromBytes(bytes uint64) time.Duration {
 	stt := (*SpeechToText)(nil)
 	return time.Duration(float64(time.Second) * float64(bytes) / float64(stt.AudioEncodingNoErr().BytesForSecond()))
-}
-
-func getBytesPosDiff(x time.Duration, baseBytes uint64) uint64 {
-	xBytes := getBytesPos(x)
-	return xBytes - baseBytes
 }
 
 func getBytesPos(d time.Duration) uint64 {

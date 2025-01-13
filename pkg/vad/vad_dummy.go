@@ -2,6 +2,7 @@ package vad
 
 import (
 	"context"
+	"time"
 
 	"github.com/xaionaro-go/audio/pkg/audio"
 )
@@ -35,6 +36,11 @@ func (vad *Dummy) Channels(context.Context) (audio.Channel, error) {
 	return vad.ChannelsValue, nil
 }
 
-func (vad *Dummy) VoiceProbability(context.Context, []byte) (float64, error) {
-	return 1, nil
+func (vad *Dummy) FindNextVoice(
+	_ context.Context,
+	samples []byte,
+	confidenceThreshold float64,
+	minDuration time.Duration,
+) (float64, time.Duration, error) {
+	return 1, 0, nil
 }

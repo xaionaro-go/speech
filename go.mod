@@ -22,7 +22,8 @@ require (
 	github.com/xaionaro-go/observability v0.0.0-20250111142240-5d72f17a6d12
 	github.com/xaionaro-go/player v0.0.0-20250112171237-124c9f68a262
 	github.com/xaionaro-go/xcontext v0.0.0-20250111150717-e70e1f5b299c
-	github.com/xaionaro-go/xsync v0.0.0-20250112014853-6c166ba9b463
+	github.com/xaionaro-go/xslices v0.0.0-20250113214440-044c7640abcb
+	github.com/xaionaro-go/xsync v0.0.0-20250113213958-aedf9c8786f5
 	google.golang.org/grpc v1.69.2
 	google.golang.org/protobuf v1.36.2
 )

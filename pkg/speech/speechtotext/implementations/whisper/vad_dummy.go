@@ -10,7 +10,7 @@ import (
 )
 
 func (stt *SpeechToText) newVAD(
-	ctx context.Context,
+	_ context.Context,
 ) (vad.VAD, error) {
 	return vad.NewDummy(stt.AudioEncodingNoErr(), stt.AudioChannelsNoErr()), nil
 }

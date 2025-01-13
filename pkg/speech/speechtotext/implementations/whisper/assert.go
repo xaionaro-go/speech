@@ -9,10 +9,14 @@ import (
 func assert(
 	ctx context.Context,
 	shouldBeTrue bool,
+	args ...any,
 ) {
 	if shouldBeTrue {
 		return
 	}
 
+	if len(args) > 0 {
+		logger.Panicf(ctx, "assertion failed: %v", args)
+	}
 	logger.Panicf(ctx, "assertion failed")
 }

@@ -11,7 +11,7 @@ import (
 )
 
 func (stt *SpeechToText) newVAD(
-	ctx context.Context,
+	_ context.Context,
 ) (vad.VAD, error) {
 	return libfvad.NewVAD(16000, 3)
 }

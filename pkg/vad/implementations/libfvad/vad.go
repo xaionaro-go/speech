@@ -3,7 +3,7 @@ package libfvad
 import (
 	"context"
 	"fmt"
-	"math"
+	"time"
 
 	"github.com/josharian/fvad"
 	"github.com/xaionaro-go/audio/pkg/audio"
@@ -34,61 +34,83 @@ func NewVAD(
 	}, nil
 }
 
-func (vad *VAD) Close() error {
-	vad.Detector.Close()
+func (v *VAD) Close() error {
+	v.Detector.Close()
 	return nil
 }
 
-func (vad *VAD) Encoding(context.Context) (audio.Encoding, error) {
-	return vad.EncodingNoErr(), nil
+func (v *VAD) Encoding(context.Context) (audio.Encoding, error) {
+	return v.EncodingNoErr(), nil
 }
 
-func (vad *VAD) EncodingNoErr() audio.EncodingPCM {
+func (v *VAD) EncodingNoErr() audio.EncodingPCM {
 	return audio.EncodingPCM{
 		PCMFormat:  audio.PCMFormatS16LE,
-		SampleRate: vad.SampleRate,
+		SampleRate: v.SampleRate,
 	}
 }
 
-func (vad *VAD) Channels(context.Context) (audio.Channel, error) {
-	return vad.ChannelsNoErr(), nil
+func (v *VAD) Channels(context.Context) (audio.Channel, error) {
+	return v.ChannelsNoErr(), nil
 }
 
-func (vad *VAD) ChannelsNoErr() audio.Channel {
+func (*VAD) ChannelsNoErr() audio.Channel {
 	return 1
 }
 
-func (vad *VAD) VoiceProbability(ctx context.Context, samples []byte) (float64, error) {
+func (v *VAD) FindNextVoice(
+	ctx context.Context,
+	samples []byte,
+	confidenceThreshold float64,
+	minDuration time.Duration,
+) (float64, time.Duration, error) {
+	if len(samples) == 0 {
+		return 0, -1, nil
+	}
+
+	var foundVoiceFor time.Duration
+	firstVoiceDetection := time.Duration(-1)
+
 	// see the description of (*fvad.Detector).Process
-	minPortion := 2 * 80 * vad.SampleRate / 8000
+	minPortion := v.pieceSize10Ms()
 	midPortion := minPortion * 2
 	maxPortion := minPortion * 3
-
-	for {
+	for pos := 0; ; pos++ {
 		var frame []byte
+
+		var curDuration time.Duration
 		switch {
 		case len(samples) >= int(maxPortion):
 			frame = samples[:maxPortion]
+			curDuration = 30 * time.Millisecond
 		case len(samples) >= int(midPortion):
 			frame = samples[:midPortion]
+			curDuration = 20 * time.Millisecond
 		case len(samples) >= int(minPortion):
 			frame = samples[:minPortion]
+			curDuration = 10 * time.Millisecond
 		default:
-			return 0, nil
+			return 0, firstVoiceDetection, nil
 		}
 		samples = samples[len(frame):]
-		result, err := vad.Detector.Process(convertBytesToInt16Slice(frame))
+		procResult, err := v.Detector.Process(convertBytesToInt16Slice(frame))
 		if err != nil {
-			return math.NaN(), err
+			return 0, firstVoiceDetection, err
 		}
-		if result {
-			return 1, nil
+
+		if procResult {
+			foundVoiceFor += curDuration
+			if firstVoiceDetection < 0 {
+				firstVoiceDetection = 30 * time.Millisecond * time.Duration(pos)
+			}
+		}
+
+		if foundVoiceFor >= minDuration {
+			return 1, firstVoiceDetection, nil
 		}
 	}
 }
 
-/*
-// Process reports whether voice has been detected in buf.
-// Only frames with a length of 10, 20 or 30 ms are supported.
-// For example at 8 kHz, len(buf) must be either 80, 160 or 240.
-*/
+func (v *VAD) pieceSize10Ms() uint32 {
+	return uint32(2 * 80 * uint64(v.SampleRate) / 8000)
+}
