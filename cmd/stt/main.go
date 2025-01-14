@@ -19,6 +19,7 @@ import (
 	"github.com/xaionaro-go/speech/pkg/speech"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/client"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper/types"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/goconv"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/proto/go/speechtotext_grpc"
 )
@@ -33,7 +34,7 @@ func main() {
 	loggerLevel := logger.LevelWarning
 	pflag.Var(&loggerLevel, "log-level", "Log level")
 	langFlag := pflag.String("language", "en-US", "")
-	alignmentAheadPresentFlag := whisper.AlignmentAheadsPreset(syswhisper.AlignmentAheadsPresetNone)
+	alignmentAheadPresentFlag := types.AlignmentAheadsPreset(syswhisper.AlignmentAheadsPresetNone)
 	pflag.Var(&alignmentAheadPresentFlag, "alignment-aheads-preset", "")
 	gpuFlag := pflag.Int("gpu", -1, "")
 	useGPUFlag := pflag.Bool("use-gpu", true, "")
@@ -92,7 +93,7 @@ func main() {
 			VadThreshold:    float32(*vadThreshold),
 			Backend: &speechtotext_grpc.NewContextRequest_Whisper{
 				Whisper: &speechtotext_grpc.WhisperOptions{
-					SamplingStrategy:      goconv.SamplingStrategyToGRPC(whisper.SamplingStrategyGreedy),
+					SamplingStrategy:      goconv.SamplingStrategyToGRPC(types.SamplingStrategyGreedy),
 					AlignmentAheadsPreset: goconv.AlignmentAheadsPresetToGRPC(syswhisper.AlignmentAheadsPreset(alignmentAheadPresentFlag)),
 				},
 			},
@@ -103,9 +104,9 @@ func main() {
 			ctx,
 			whisperModel,
 			speech.Language(*langFlag),
-			whisper.SamplingStrategyGreedy,
+			types.SamplingStrategyGreedy,
 			*shouldTranslateFlag,
-			syswhisper.AlignmentAheadsPreset(alignmentAheadPresentFlag),
+			types.AlignmentAheadsPreset(alignmentAheadPresentFlag),
 			*vadThreshold,
 			opts...,
 		)

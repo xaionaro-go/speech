@@ -15,7 +15,7 @@ import (
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/client"
-	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper/types"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/goconv"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/proto/go/speechtotext_grpc"
 	"github.com/xaionaro-go/xsync"
@@ -63,19 +63,13 @@ func newSpeechRecognizer(
 	)
 	if remoteAddrWhisper == "" {
 		logger.Debugf(ctx, "initializing a local context")
-		var opts whisper.Options
-		if gpu >= 0 {
-			opts = append(opts, whisper.OptionGPUDeviceID(gpu))
-		}
-		stt, err = whisper.New(
+		stt, err = initLocalSTT(
 			ctx,
+			gpu,
 			whisperModel,
 			language,
-			whisper.SamplingStrategyBreamSearch,
 			shouldTranslate,
-			syswhisper.AlignmentAheadsPresetNone,
 			vadThreshold,
-			opts...,
 		)
 	} else {
 		logger.Debugf(ctx, "initializing a remote context")
@@ -86,7 +80,7 @@ func newSpeechRecognizer(
 			VadThreshold:    float32(vadThreshold),
 			Backend: &speechtotext_grpc.NewContextRequest_Whisper{
 				Whisper: &speechtotext_grpc.WhisperOptions{
-					SamplingStrategy:      goconv.SamplingStrategyToGRPC(whisper.SamplingStrategyGreedy),
+					SamplingStrategy:      goconv.SamplingStrategyToGRPC(types.SamplingStrategyGreedy),
 					AlignmentAheadsPreset: goconv.AlignmentAheadsPresetToGRPC(syswhisper.AlignmentAheadsPreset(syswhisper.AlignmentAheadsPresetNone)),
 				},
 			},

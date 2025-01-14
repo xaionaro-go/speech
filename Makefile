@@ -73,7 +73,7 @@ LINKER_FLAGS_LINUX?=$(LINKER_FLAGS)
 LINKER_FLAGS_WINDOWS?=$(LINKER_FLAGS) '-extldflags=$(WINDOWS_EXTLINKER_FLAGS)'
 
 PKG_CONFIG_PATH:="$(PWD)"/pkg/speech/speechtotext/implementations/whisper/pkgconfig/:"$(PKG_CONFIG_PATH)"
-WINDOWS_CGO_FLAGS?=
+WINDOWS_CGO_FLAGS?=-L$(PWD)/thirdparty/windows/portaudio-binaries/ -I$(PWD)/thirdparty/portaudio/include/
 
 ifeq ($(GOVERSION_GE_1_23),true) # see https://github.com/wlynxg/anet/?tab=readme-ov-file#how-to-build-with-go-1230-or-later
 	LINKER_FLAGS_ANDROID+=-checklinkname=0
@@ -96,6 +96,8 @@ signer-sign-streampanel-arm64-apk: priv/android-apk.keystore
 	jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 -keystore priv/android-apk.keystore build/streampanel-arm64.apk streampanel
 
 deps: thirdparty/whisper.cpp/CMakeLists.txt pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI)
+
+windows-deps: thirdparty/windows/portaudio-binaries/libportaudio.dylib
 
 pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc:
 	PKG_CONFIG_PATH= go generate ./pkg/speech/speechtotext/implementations/whisper/pkgconfig/...
@@ -128,7 +130,7 @@ subtitleswindow-linux-amd64: build deps
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_LINUX)" -o "$(INSTALL_DEST)" ./cmd/subtitleswindow
 	$(eval undefine INSTALL_DEST)
 
-subtitleswindow-windows-amd64: build deps
+subtitleswindow-windows-amd64: build deps windows-deps
 	$(eval INSTALL_DEST?=build/subtitleswindow-windows-amd64.exe)
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) CGO_ENABLED=1 CGO_LDFLAGS="-static" CGO_CFLAGS="$(WINDOWS_CGO_FLAGS)" CC=x86_64-w64-mingw32-gcc GOOS=windows go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_WINDOWS)" -o "$(INSTALL_DEST)" ./cmd/subtitleswindow
 	$(eval undefine INSTALL_DEST)

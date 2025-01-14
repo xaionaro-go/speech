@@ -17,16 +17,19 @@ require (
 	github.com/mutablelogic/go-whisper v0.0.22-0.20241221210700-ba095bdd5196
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.10.0
-	github.com/xaionaro-go/audio v0.0.0-20250114002336-43a8fa3d9952
+	github.com/xaionaro-go/audio v0.0.0-20250114020901-718cb7f92b38
 	github.com/xaionaro-go/observability v0.0.0-20250111142240-5d72f17a6d12
-	github.com/xaionaro-go/player v0.0.0-20250112171237-124c9f68a262
+	github.com/xaionaro-go/player v0.0.0-20250114021211-902c479ff7eb
 	github.com/xaionaro-go/xcontext v0.0.0-20250111150717-e70e1f5b299c
 	github.com/xaionaro-go/xsync v0.0.0-20250113213958-aedf9c8786f5
 	google.golang.org/grpc v1.69.2
 	google.golang.org/protobuf v1.36.2
 )
 
-require github.com/josharian/fvad v0.0.0-20201126043145-6cba2db1e3b8 // indirect
+require (
+	github.com/gordonklaus/portaudio v0.0.0-20230709114228-aafa478834f5 // indirect
+	github.com/josharian/fvad v0.0.0-20201126043145-6cba2db1e3b8 // indirect
+)
 
 require (
 	fyne.io/systray v1.11.0 // indirect

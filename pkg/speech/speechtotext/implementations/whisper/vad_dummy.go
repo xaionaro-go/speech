@@ -1,5 +1,5 @@
-//go:build no_libfvad
-// +build no_libfvad
+//go:build no_libfvad || windows
+// +build no_libfvad windows
 
 package whisper
 

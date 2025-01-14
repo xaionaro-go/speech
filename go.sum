@@ -209,6 +209,8 @@ github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORR
 github.com/gopherjs/gopherjs v0.0.0-20211219123610-ec9572f70e60/go.mod h1:cz9oNYuRUWGdHmLF2IodMLkAhcPtXeULvcBNagUrxTI=
 github.com/gopherjs/gopherjs v1.17.2 h1:fQnZVsXk8uxXIStYb0N4bGk7jeyTalG/wsZjQ25dO0g=
 github.com/gopherjs/gopherjs v1.17.2/go.mod h1:pRRIvn/QzFLrKfvEz3qUuEhtE/zLCWfreZ6J5gM2i+k=
+github.com/gordonklaus/portaudio v0.0.0-20230709114228-aafa478834f5 h1:5AlozfqaVjGYGhms2OsdUyfdJME76E6rx5MdGpjzZpc=
+github.com/gordonklaus/portaudio v0.0.0-20230709114228-aafa478834f5/go.mod h1:WY8R6YKlI2ZI3UyzFk7P6yGSuS+hFwNtEzrexRyD7Es=
 github.com/goxjs/gl v0.0.0-20210104184919-e3fafc6f8f2a/go.mod h1:dy/f2gjY09hwVfIyATps4G2ai7/hLwLkc5TrPqONuXY=
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
 github.com/hashicorp/consul/api v1.1.0/go.mod h1:VmuI/Lkw1nC05EYQWNKwWGbkg+FbDBtguAZLlVdkD9Q=
@@ -345,8 +347,8 @@ github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/xaionaro-go/astiav v0.0.0-20250106205037-a1605f324663 h1:b0lOm2erjkc/D1/BBa1m9F/jV5AEhU6sRzkcqwTUZH8=
 github.com/xaionaro-go/astiav v0.0.0-20250106205037-a1605f324663/go.mod h1:K7D8UC6GeQt85FUxk2KVwYxHnotrxuEnp5evkkudc2s=
-github.com/xaionaro-go/audio v0.0.0-20250114002336-43a8fa3d9952 h1:+GjGcZ60fjpNub163u8T7j9jWEk0SAodG7jw52FNJK0=
-github.com/xaionaro-go/audio v0.0.0-20250114002336-43a8fa3d9952/go.mod h1:NlD1Bai5jgLYOoXT92z0jddUE594oy+AaBjpc4Ixaeg=
+github.com/xaionaro-go/audio v0.0.0-20250114020901-718cb7f92b38 h1:wV0rvGXkQT6PjQzW7BC71Z9iII3i8SwD1/On0p5RUk0=
+github.com/xaionaro-go/audio v0.0.0-20250114020901-718cb7f92b38/go.mod h1:w7tHTCVluVLsKSsMjoVvcOfthIf4aMXwXjbSJVjB3Go=
 github.com/xaionaro-go/gorex v0.0.0-20241010205749-bcd59d639c4d h1:9DyH0lboWWzKUwiqGmp9sTZ3bSPhgJHiiWgV+hqY9Uo=
 github.com/xaionaro-go/gorex v0.0.0-20241010205749-bcd59d639c4d/go.mod h1:yI0EvHC6Ir5WIZp3tEk7o42/QqeTb9pkII+T8p4FlPo=
 github.com/xaionaro-go/libsrt v0.0.0-20250105232601-e760c79b2bc3 h1:OeqZZ9i3KHaTKOxLtrF7nBkao299F5QK4acl9Nd/GrI=
@@ -357,8 +359,8 @@ github.com/xaionaro-go/object v0.0.0-20241026212449-753ce10ec94c h1:2CIIxTRox9au
 github.com/xaionaro-go/object v0.0.0-20241026212449-753ce10ec94c/go.mod h1:vRcA12NWsR0IrS75eqnPBs5aVfCYmJy4bR+6DbJpBCg=
 github.com/xaionaro-go/observability v0.0.0-20250111142240-5d72f17a6d12 h1:iy02dGEbIbn8yb/pO/gPpyl2QSk6CPiLl8/JisKsrWg=
 github.com/xaionaro-go/observability v0.0.0-20250111142240-5d72f17a6d12/go.mod h1:j5y9LVYd0v8sJa9Ks7ZyuwFxAUpaNFHBNKBkiYipxPM=
-github.com/xaionaro-go/player v0.0.0-20250112171237-124c9f68a262 h1:PTh7ABbQIb8vYhXNly16N0Yz9x+QSAEZRc8C5smRAaQ=
-github.com/xaionaro-go/player v0.0.0-20250112171237-124c9f68a262/go.mod h1:4sEy9plfmuhzxib69bgVyVfFnjR5+HADorlhFGVnFAA=
+github.com/xaionaro-go/player v0.0.0-20250114021211-902c479ff7eb h1:5PCxD+CG34qt+y9cmHwqNWMGaGENQpiQFDKHpwF9BGw=
+github.com/xaionaro-go/player v0.0.0-20250114021211-902c479ff7eb/go.mod h1:qtmFoO28bT0DvwzywpcJ5vQSEtmVHgRdXW/+Ob7BdAw=
 github.com/xaionaro-go/proxy v0.0.0-20250111150848-1f0e7b262638 h1:w7Dt6Mpj36S2cWm0PkT2+D4kxrQbfCwjXZs1HqiILpE=
 github.com/xaionaro-go/proxy v0.0.0-20250111150848-1f0e7b262638/go.mod h1:hOkJBFoMsnCDoZgpSPTHYbnevPgtpD16d9Xga91U+Eo=
 github.com/xaionaro-go/recoder v0.0.0-20250111153658-7e55cef13b0f h1:TSCIAhxRA/C0L8Eq16JHbsB3iixrA5jVRlN36yIvvZk=

@@ -32,13 +32,13 @@ func NewDummyPCMPlayer(ctx context.Context) *dummyPCMPlayer {
 }
 
 func (r *dummyPCMPlayer) PlayPCM(
+	ctx context.Context,
 	sampleRate audio.SampleRate,
 	channels audio.Channel,
 	format audio.PCMFormat,
 	bufferSize time.Duration,
 	reader io.Reader,
 ) (audio.PlayStream, error) {
-	ctx := context.TODO()
 	logger.Debugf(ctx, "PlayPCM(%v, %v, %v, %v, reader)", sampleRate, channels, format, bufferSize)
 	requiredPCMEncoding := (*whisper.SpeechToText)(nil).AudioEncodingNoErr()
 

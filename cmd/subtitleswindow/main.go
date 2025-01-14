@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/xaionaro-go/audio/pkg/audio"
 	_ "github.com/xaionaro-go/audio/pkg/audio/backends/oto"
+	_ "github.com/xaionaro-go/audio/pkg/audio/backends/portaudio"
 	_ "github.com/xaionaro-go/audio/pkg/audio/backends/pulseaudio"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/player/pkg/player/builtin"
@@ -92,8 +93,9 @@ func main() {
 	if mediaURL == "" {
 		r, w := io.Pipe()
 		recorder := audio.NewRecorderAuto(ctx)
+		defer recorder.Close()
 		logger.Infof(ctx, "using %T as the audio input", recorder.RecorderPCM)
-		stream, err := recorder.RecordPCM(audioEnc.SampleRate, audioChannels, audioEnc.PCMFormat, w)
+		stream, err := recorder.RecordPCM(ctx, audioEnc.SampleRate, audioChannels, audioEnc.PCMFormat, w)
 		if err != nil {
 			panic(err)
 		}
@@ -116,8 +118,9 @@ func main() {
 
 	if *playbackFlag {
 		player := audio.NewPlayerAuto(ctx)
+		defer player.Close()
 		logger.Infof(ctx, "using %T as the audio output", player.PlayerPCM)
-		stream, err := player.PlayPCM(audioEnc.SampleRate, audioChannels, audioEnc.PCMFormat, time.Millisecond*100, audioInput)
+		stream, err := player.PlayPCM(ctx, audioEnc.SampleRate, audioChannels, audioEnc.PCMFormat, time.Millisecond*100, audioInput)
 		if err != nil {
 			panic(err)
 		}

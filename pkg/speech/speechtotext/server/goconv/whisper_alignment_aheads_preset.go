@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	"github.com/mutablelogic/go-whisper/sys/whisper"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper/types"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/proto/go/speechtotext_grpc"
 )
 
 func AlignmentAheadsPresetFromGRPC(
 	p speechtotext_grpc.WhisperAlignmentAheadsPreset,
-) whisper.AlignmentAheadsPreset {
+) types.AlignmentAheadsPreset {
 	switch p {
 	case speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetNone:
 		return whisper.AlignmentAheadsPresetNone

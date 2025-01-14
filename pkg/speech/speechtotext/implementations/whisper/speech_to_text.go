@@ -19,6 +19,7 @@ import (
 	"github.com/xaionaro-go/audio/pkg/vad"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper/types"
 	"github.com/xaionaro-go/xsync"
 )
 
@@ -79,9 +80,9 @@ func New(
 	ctx context.Context,
 	modelBytes []byte,
 	language speech.Language,
-	samplingStrategy SamplingStrategy,
+	samplingStrategy types.SamplingStrategy,
 	shouldTranslate bool,
-	alignmentAheadPreset whisper.AlignmentAheadsPreset,
+	alignmentAheadPreset types.AlignmentAheadsPreset,
 	vadThreshold float64,
 	opts ...Option,
 ) (*SpeechToText, error) {
@@ -97,7 +98,7 @@ func New(
 		params.SetFlashAttn(*cfg.FlashAttn)
 	}
 	params.SetTokenTimestamps(false)
-	params.SetDTWAheadsPreset(alignmentAheadPreset)
+	params.SetDTWAheadsPreset(whisper.AlignmentAheadsPreset(alignmentAheadPreset))
 	whisper.Whisper_log_set(func(level whisper.LogLevel, text string) {
 		logger.FromCtx(ctx).Log(logLevelFromWhisper(level), text)
 	})
