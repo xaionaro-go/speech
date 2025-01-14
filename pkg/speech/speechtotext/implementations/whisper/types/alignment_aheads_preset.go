@@ -4,41 +4,41 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mutablelogic/go-whisper/sys/whisper"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/proto/go/speechtotext_grpc"
 )
 
-type AlignmentAheadsPreset whisper.AlignmentAheadsPreset
+type AlignmentAheadsPreset speechtotext_grpc.WhisperAlignmentAheadsPreset
 
 // String just implements fmt.Stringer, flag.Value and pflag.Value.
 func (p AlignmentAheadsPreset) String() string {
 	switch p {
-	case whisper.AlignmentAheadsPresetNone:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetNone):
 		return "none"
-	case whisper.AlignmentAheadsPresetTinyEn:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetTinyEn):
 		return "tiny_en"
-	case whisper.AlignmentAheadsPresetTiny:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetTiny):
 		return "tiny"
-	case whisper.AlignmentAheadsPresetSmallEn:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetSmallEn):
 		return "small_en"
-	case whisper.AlignmentAheadsPresetSmall:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetSmall):
 		return "small"
-	case whisper.AlignmentAheadsPresetBaseEn:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetBaseEn):
 		return "base_en"
-	case whisper.AlignmentAheadsPresetBase:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetBase):
 		return "base"
-	case whisper.AlignmentAheadsPresetMediumEn:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetMediumEn):
 		return "medium_en"
-	case whisper.AlignmentAheadsPresetMedium:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetMedium):
 		return "medium"
-	case whisper.AlignmentAheadsPresetLargeV1:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV1):
 		return "large_v1"
-	case whisper.AlignmentAheadsPresetLargeV2:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV2):
 		return "large_v2"
-	case whisper.AlignmentAheadsPresetLargeV3:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV3):
 		return "large_v3"
-	case whisper.AlignmentAheadsPresetNTopMost:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetNTopMost):
 		return "n_top_most"
-	case whisper.AlignmentAheadsPresetCustom:
+	case AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetCustom):
 		return "custom"
 	}
 	return fmt.Sprintf("unknown_%d", p)
@@ -63,38 +63,38 @@ func (p *AlignmentAheadsPreset) Type() string {
 func ParseAlignmentAheadsPreset(in string) (AlignmentAheadsPreset, error) {
 	switch strings.ToLower(in) {
 	case "none":
-		return whisper.AlignmentAheadsPresetNone, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetNone), nil
 	case "tiny_en":
-		return whisper.AlignmentAheadsPresetTinyEn, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetTinyEn), nil
 	case "tiny":
-		return whisper.AlignmentAheadsPresetTiny, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetTiny), nil
 	case "small_en":
-		return whisper.AlignmentAheadsPresetSmallEn, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetSmallEn), nil
 	case "small":
-		return whisper.AlignmentAheadsPresetSmall, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetSmall), nil
 	case "base_en":
-		return whisper.AlignmentAheadsPresetBaseEn, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetBaseEn), nil
 	case "base":
-		return whisper.AlignmentAheadsPresetBase, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetBase), nil
 	case "medium_en":
-		return whisper.AlignmentAheadsPresetMediumEn, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetMediumEn), nil
 	case "medium":
-		return whisper.AlignmentAheadsPresetMedium, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetMedium), nil
 	case "large_v1":
-		return whisper.AlignmentAheadsPresetLargeV1, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV1), nil
 	case "large_v2":
-		return whisper.AlignmentAheadsPresetLargeV2, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV2), nil
 	case "large_v3":
-		return whisper.AlignmentAheadsPresetLargeV3, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV3), nil
 	case "n_top_most":
-		return whisper.AlignmentAheadsPresetNTopMost, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetNTopMost), nil
 	case "custom":
-		return whisper.AlignmentAheadsPresetCustom, nil
+		return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetCustom), nil
 	}
 	var allowedValues []string
-	for aap := AlignmentAheadsPreset(0); aap <= whisper.AlignmentAheadsPresetLargeV3; aap++ {
+	for aap := AlignmentAheadsPreset(0); aap <= AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetLargeV3); aap++ {
 		allowedValues = append(allowedValues, aap.String())
 	}
-	return whisper.AlignmentAheadsPresetNone, fmt.Errorf("unknown alignment aheads preset '%s', known values are: %s",
+	return AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetNone), fmt.Errorf("unknown alignment aheads preset '%s', known values are: %s",
 		in, strings.Join(allowedValues, ", "))
 }

@@ -106,7 +106,7 @@ func main() {
 			speech.Language(*langFlag),
 			types.SamplingStrategyGreedy,
 			*shouldTranslateFlag,
-			types.AlignmentAheadsPreset(alignmentAheadPresentFlag),
+			whisper.AlignmentAheadsPreset(alignmentAheadPresentFlag),
 			*vadThreshold,
 			opts...,
 		)

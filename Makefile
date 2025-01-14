@@ -67,13 +67,15 @@ BUILD_DATE_STRING?=$(shell date +%s)
 
 LINKER_FLAGS?=-X=github.com/xaionaro-go/buildvars.GitCommit=$(GIT_COMMIT) -X=github.com/xaionaro-go/buildvars.Version=$(VERSION_STRING) -X=github.com/xaionaro-go/buildvars.BuildDateString=$(BUILD_DATE_STRING)
 
+WINDOWS_EXTLINKER_FLAGS?=-L$(PWD)/thirdparty/windows/portaudio-binaries/ -L$(PWD)/thirdparty/windows/amd64/ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0/lib
+
 LINKER_FLAGS_ANDROID?=$(LINKER_FLAGS)
 LINKER_FLAGS_DARWIN?=$(LINKER_FLAGS)
 LINKER_FLAGS_LINUX?=$(LINKER_FLAGS)
 LINKER_FLAGS_WINDOWS?=$(LINKER_FLAGS) '-extldflags=$(WINDOWS_EXTLINKER_FLAGS)'
 
 PKG_CONFIG_PATH:="$(PWD)"/pkg/speech/speechtotext/implementations/whisper/pkgconfig/:"$(PKG_CONFIG_PATH)"
-WINDOWS_CGO_FLAGS?=-L$(PWD)/thirdparty/windows/portaudio-binaries/ -I$(PWD)/thirdparty/portaudio/include/
+WINDOWS_CGO_FLAGS?=-I$(PWD)/thirdparty/portaudio/include/
 
 ifeq ($(GOVERSION_GE_1_23),true) # see https://github.com/wlynxg/anet/?tab=readme-ov-file#how-to-build-with-go-1230-or-later
 	LINKER_FLAGS_ANDROID+=-checklinkname=0
@@ -97,7 +99,20 @@ signer-sign-streampanel-arm64-apk: priv/android-apk.keystore
 
 deps: thirdparty/whisper.cpp/CMakeLists.txt pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI)
 
-windows-deps: thirdparty/windows/portaudio-binaries/libportaudio.dylib
+windows-deps: thirdparty/windows/portaudio-binaries/libportaudio.dylib thirdparty/portaudio/include/portaudio.h thirdparty/windows/amd64/ready
+
+thirdparty/windows/portaudio-binaries/libportaudio.dylib:
+	rm -rf thirdparty/windows/portaudio-binaries
+	git submodule update --init
+
+thirdparty/portaudio/include/portaudio.h:
+	rm -rf thirdparty/portaudio
+	git submodule update --init
+
+thirdparty/windows/amd64/ready:
+	mkdir -p thirdparty/windows/amd64
+	sh -c 'cd thirdparty/windows/amd64 && wget https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2024-04-30-12-51/ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0.zip && unzip -o ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0.zip && rm -f ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0.zip'
+	touch thirdparty/windows/amd64/ready
 
 pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc:
 	PKG_CONFIG_PATH= go generate ./pkg/speech/speechtotext/implementations/whisper/pkgconfig/...

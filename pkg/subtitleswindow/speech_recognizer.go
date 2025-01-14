@@ -11,7 +11,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/facebookincubator/go-belt/tool/logger"
 	"github.com/hashicorp/go-multierror"
-	syswhisper "github.com/mutablelogic/go-whisper/sys/whisper"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/client"
@@ -81,7 +80,7 @@ func newSpeechRecognizer(
 			Backend: &speechtotext_grpc.NewContextRequest_Whisper{
 				Whisper: &speechtotext_grpc.WhisperOptions{
 					SamplingStrategy:      goconv.SamplingStrategyToGRPC(types.SamplingStrategyGreedy),
-					AlignmentAheadsPreset: goconv.AlignmentAheadsPresetToGRPC(syswhisper.AlignmentAheadsPreset(syswhisper.AlignmentAheadsPresetNone)),
+					AlignmentAheadsPreset: speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetNone,
 				},
 			},
 		})

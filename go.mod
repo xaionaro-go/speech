@@ -8,6 +8,8 @@ replace github.com/asticode/go-astiav v0.30.0 => github.com/xaionaro-go/astiav v
 
 replace github.com/mutablelogic/go-whisper v0.0.22-0.20241221210700-ba095bdd5196 => github.com/xaionaro-go/whisper v0.0.0-20250113112709-f6b19475a1f1
 
+replace github.com/gordonklaus/portaudio v0.0.0-20230709114228-aafa478834f5 => github.com/KarpelesLab/static-portaudio v0.6.190600
+
 require (
 	fyne.io/fyne/v2 v2.5.3
 	github.com/facebookincubator/go-belt v0.0.0-20240804203001-846c4409d41c

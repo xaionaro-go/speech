@@ -8,7 +8,7 @@ import (
 	"github.com/xaionaro-go/audio/pkg/audio"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech"
-	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper"
+	whisperconsts "github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper/consts"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/consts"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/goconv"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/proto/go/speechtotext_grpc"
@@ -81,11 +81,11 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) AudioEncoding(context.Context) (audio.Encoding, error) {
-	return (*whisper.SpeechToText)(nil).AudioEncodingNoErr(), nil // TODO: request the server to provide this value
+	return whisperconsts.AudioEncoding(), nil // TODO: request the server to provide this value
 }
 
 func (c *Client) AudioChannels(context.Context) (audio.Channel, error) {
-	return (*whisper.SpeechToText)(nil).AudioChannelsNoErr(), nil // TODO: request the server to provide this value
+	return whisperconsts.AudioChannels, nil // TODO: request the server to provide this value
 }
 
 func (c *Client) WriteAudio(

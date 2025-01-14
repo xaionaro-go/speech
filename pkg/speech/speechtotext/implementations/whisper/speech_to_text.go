@@ -19,6 +19,7 @@ import (
 	"github.com/xaionaro-go/audio/pkg/vad"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech"
+	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper/consts"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper/types"
 	"github.com/xaionaro-go/xsync"
 )
@@ -108,7 +109,7 @@ func New(
 
 	stt := &SpeechToText{
 		Context:   whisper.Whisper_init_from_buffer_with_params(modelBytes, params),
-		Params:    whisper.DefaultFullParams(samplingStrategy.ToWhisper()),
+		Params:    whisper.DefaultFullParams(SamplingStrategy(samplingStrategy).ToWhisper()),
 		Received:  &schema.Transcription{},
 		ModelHash: h,
 
@@ -353,14 +354,11 @@ func (*SpeechToText) AudioChannels(context.Context) (audio.Channel, error) {
 }
 
 func (*SpeechToText) AudioEncodingNoErr() audio.EncodingPCM {
-	return audio.EncodingPCM{
-		PCMFormat:  audio.PCMFormatFloat32LE,
-		SampleRate: 16000,
-	}
+	return consts.AudioEncoding()
 }
 
 func (*SpeechToText) AudioChannelsNoErr() audio.Channel {
-	return 1
+	return consts.AudioChannels
 }
 
 func (stt *SpeechToText) writeSegment(
