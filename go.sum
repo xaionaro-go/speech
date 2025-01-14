@@ -365,6 +365,8 @@ github.com/xaionaro-go/proxy v0.0.0-20250111150848-1f0e7b262638 h1:w7Dt6Mpj36S2c
 github.com/xaionaro-go/proxy v0.0.0-20250111150848-1f0e7b262638/go.mod h1:hOkJBFoMsnCDoZgpSPTHYbnevPgtpD16d9Xga91U+Eo=
 github.com/xaionaro-go/recoder v0.0.0-20250111153658-7e55cef13b0f h1:TSCIAhxRA/C0L8Eq16JHbsB3iixrA5jVRlN36yIvvZk=
 github.com/xaionaro-go/recoder v0.0.0-20250111153658-7e55cef13b0f/go.mod h1:rWeSg9LZAt/3FvkFkHzD+0cwemLEHQaIIUlEM3qs8pQ=
+github.com/xaionaro-go/recoder v0.0.0-20250114225701-f0f4ddc5b0b6 h1:+/zQS6XviP9FP1EmH+nzBdlpbMpLHvla2UyRLnZ7uFg=
+github.com/xaionaro-go/recoder v0.0.0-20250114225701-f0f4ddc5b0b6/go.mod h1:2zh8VZH2y303iToWxYVtno0Ojq0xMq40YDQKq/Dnfl0=
 github.com/xaionaro-go/secret v0.0.0-20250111141743-ced12e1082c2 h1:QHpTWfyfmz65cE0MtFXe9fScdi+X0VIYR2wgolSYEUk=
 github.com/xaionaro-go/secret v0.0.0-20250111141743-ced12e1082c2/go.mod h1:XKoHGZ4VKMbVBl8VotLIoWQdrB6Q7jnR++RbkiegZFU=
 github.com/xaionaro-go/spinlock v0.0.0-20190309154744-55278e21e817/go.mod h1:Nb/15eS0BMty6TMuWgRQM8WCDIUlyPZagcpchHT6c9Y=

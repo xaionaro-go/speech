@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/xaionaro-go/audio/pkg/audio"
 	_ "github.com/xaionaro-go/audio/pkg/audio/backends/oto"
-	_ "github.com/xaionaro-go/audio/pkg/audio/backends/portaudio"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/player/pkg/player/builtin"
 	"github.com/xaionaro-go/speech/pkg/speech"

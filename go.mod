@@ -80,7 +80,7 @@ require (
 	github.com/xaionaro-go/logrustash v0.0.0-20240804141650-d48034780a5f // indirect
 	github.com/xaionaro-go/object v0.0.0-20241026212449-753ce10ec94c
 	github.com/xaionaro-go/proxy v0.0.0-20250111150848-1f0e7b262638 // indirect
-	github.com/xaionaro-go/recoder v0.0.0-20250111153658-7e55cef13b0f // indirect
+	github.com/xaionaro-go/recoder v0.0.0-20250114225701-f0f4ddc5b0b6 // indirect
 	github.com/xaionaro-go/spinlock v0.0.0-20200518175509-30e6d1ce68a1 // indirect
 	github.com/xaionaro-go/unsafetools v0.0.0-20241024014258-a46e1ce3763e // indirect
 	github.com/yuin/goldmark v1.7.1 // indirect
