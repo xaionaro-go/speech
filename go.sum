@@ -345,8 +345,8 @@ github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/xaionaro-go/astiav v0.0.0-20250106205037-a1605f324663 h1:b0lOm2erjkc/D1/BBa1m9F/jV5AEhU6sRzkcqwTUZH8=
 github.com/xaionaro-go/astiav v0.0.0-20250106205037-a1605f324663/go.mod h1:K7D8UC6GeQt85FUxk2KVwYxHnotrxuEnp5evkkudc2s=
-github.com/xaionaro-go/audio v0.0.0-20250112164406-5f5703997d03 h1:kiUyECOEiNT+3GW5T23D5PYcve4E+L+/u8qVvgK4ad0=
-github.com/xaionaro-go/audio v0.0.0-20250112164406-5f5703997d03/go.mod h1:1axZqiEy+7Eis+fHN4iXHlyDxzacIKqR0RuLUPQmeKQ=
+github.com/xaionaro-go/audio v0.0.0-20250114002336-43a8fa3d9952 h1:+GjGcZ60fjpNub163u8T7j9jWEk0SAodG7jw52FNJK0=
+github.com/xaionaro-go/audio v0.0.0-20250114002336-43a8fa3d9952/go.mod h1:NlD1Bai5jgLYOoXT92z0jddUE594oy+AaBjpc4Ixaeg=
 github.com/xaionaro-go/gorex v0.0.0-20241010205749-bcd59d639c4d h1:9DyH0lboWWzKUwiqGmp9sTZ3bSPhgJHiiWgV+hqY9Uo=
 github.com/xaionaro-go/gorex v0.0.0-20241010205749-bcd59d639c4d/go.mod h1:yI0EvHC6Ir5WIZp3tEk7o42/QqeTb9pkII+T8p4FlPo=
 github.com/xaionaro-go/libsrt v0.0.0-20250105232601-e760c79b2bc3 h1:OeqZZ9i3KHaTKOxLtrF7nBkao299F5QK4acl9Nd/GrI=
@@ -374,8 +374,6 @@ github.com/xaionaro-go/whisper v0.0.0-20250113112709-f6b19475a1f1 h1:3K8qRxw1lgX
 github.com/xaionaro-go/whisper v0.0.0-20250113112709-f6b19475a1f1/go.mod h1:uckbdbn37jcaJ5ZdDSWtEQRVz/qWnReWxkcs6LWTlMU=
 github.com/xaionaro-go/xcontext v0.0.0-20250111150717-e70e1f5b299c h1://sE/WLpO7wpcVsp1FfTNAG9JmL60KfXiogNVKYivTA=
 github.com/xaionaro-go/xcontext v0.0.0-20250111150717-e70e1f5b299c/go.mod h1:MGRT1+2m2adVRc4aAn0RVGysjsSRKN9VCyBJLHvQd4k=
-github.com/xaionaro-go/xslices v0.0.0-20250113214440-044c7640abcb h1:bpX6CQtG0WqXotwozpldrTOStmh6P/vaE1XTYnAKtnc=
-github.com/xaionaro-go/xslices v0.0.0-20250113214440-044c7640abcb/go.mod h1:q6vDZDNVfWtzmLbrX8FIHH6IHNCIk0JOn8VlbBd8znQ=
 github.com/xaionaro-go/xsync v0.0.0-20250113213958-aedf9c8786f5 h1:l18KTPxJCTppjRNVRtE5PcKCqFBSzVPcwAw2x0vxAdo=
 github.com/xaionaro-go/xsync v0.0.0-20250113213958-aedf9c8786f5/go.mod h1:FCpywNAl4a4hgzE8j7Z+TpdhBQi5WHxnI35jOrFpoQw=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

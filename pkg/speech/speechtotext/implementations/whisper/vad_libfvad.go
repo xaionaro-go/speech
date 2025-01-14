@@ -6,8 +6,8 @@ package whisper
 import (
 	"context"
 
-	"github.com/xaionaro-go/speech/pkg/vad"
-	"github.com/xaionaro-go/speech/pkg/vad/implementations/libfvad"
+	"github.com/xaionaro-go/audio/pkg/vad"
+	"github.com/xaionaro-go/audio/pkg/vad/implementations/libfvad"
 )
 
 func (stt *SpeechToText) newVAD(

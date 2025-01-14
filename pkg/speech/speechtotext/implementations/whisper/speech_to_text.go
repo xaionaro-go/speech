@@ -16,9 +16,9 @@ import (
 	"github.com/mutablelogic/go-whisper/sys/whisper"
 	"github.com/xaionaro-go/audio/pkg/audio"
 	"github.com/xaionaro-go/audio/pkg/audio/resampler"
+	"github.com/xaionaro-go/audio/pkg/vad"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech"
-	"github.com/xaionaro-go/speech/pkg/vad"
 	"github.com/xaionaro-go/xsync"
 )
 

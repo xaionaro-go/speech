@@ -14,19 +14,19 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/josharian/fvad v0.0.0-20201126043145-6cba2db1e3b8
 	github.com/mutablelogic/go-whisper v0.0.22-0.20241221210700-ba095bdd5196
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.10.0
-	github.com/xaionaro-go/audio v0.0.0-20250112164406-5f5703997d03
+	github.com/xaionaro-go/audio v0.0.0-20250114002336-43a8fa3d9952
 	github.com/xaionaro-go/observability v0.0.0-20250111142240-5d72f17a6d12
 	github.com/xaionaro-go/player v0.0.0-20250112171237-124c9f68a262
 	github.com/xaionaro-go/xcontext v0.0.0-20250111150717-e70e1f5b299c
-	github.com/xaionaro-go/xslices v0.0.0-20250113214440-044c7640abcb
 	github.com/xaionaro-go/xsync v0.0.0-20250113213958-aedf9c8786f5
 	google.golang.org/grpc v1.69.2
 	google.golang.org/protobuf v1.36.2
 )
+
+require github.com/josharian/fvad v0.0.0-20201126043145-6cba2db1e3b8 // indirect
 
 require (
 	fyne.io/systray v1.11.0 // indirect
