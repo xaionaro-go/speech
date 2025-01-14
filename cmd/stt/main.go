@@ -13,7 +13,6 @@ import (
 	"github.com/facebookincubator/go-belt/tool/logger"
 	"github.com/facebookincubator/go-belt/tool/logger/implementation/logrus"
 	"github.com/lazybeaver/entropy"
-	syswhisper "github.com/mutablelogic/go-whisper/sys/whisper"
 	"github.com/spf13/pflag"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech"
@@ -34,7 +33,7 @@ func main() {
 	loggerLevel := logger.LevelWarning
 	pflag.Var(&loggerLevel, "log-level", "Log level")
 	langFlag := pflag.String("language", "en-US", "")
-	alignmentAheadPresentFlag := types.AlignmentAheadsPreset(syswhisper.AlignmentAheadsPresetNone)
+	alignmentAheadPresentFlag := types.AlignmentAheadsPreset(speechtotext_grpc.WhisperAlignmentAheadsPreset_WhisperAlignmentAheadsPresetNone)
 	pflag.Var(&alignmentAheadPresentFlag, "alignment-aheads-preset", "")
 	gpuFlag := pflag.Int("gpu", -1, "")
 	useGPUFlag := pflag.Bool("use-gpu", true, "")
@@ -94,7 +93,7 @@ func main() {
 			Backend: &speechtotext_grpc.NewContextRequest_Whisper{
 				Whisper: &speechtotext_grpc.WhisperOptions{
 					SamplingStrategy:      goconv.SamplingStrategyToGRPC(types.SamplingStrategyGreedy),
-					AlignmentAheadsPreset: goconv.AlignmentAheadsPresetToGRPC(syswhisper.AlignmentAheadsPreset(alignmentAheadPresentFlag)),
+					AlignmentAheadsPreset: speechtotext_grpc.WhisperAlignmentAheadsPreset(alignmentAheadPresentFlag),
 				},
 			},
 		})
@@ -106,7 +105,7 @@ func main() {
 			speech.Language(*langFlag),
 			types.SamplingStrategyGreedy,
 			*shouldTranslateFlag,
-			whisper.AlignmentAheadsPreset(alignmentAheadPresentFlag),
+			alignmentAheadPresentFlag,
 			*vadThreshold,
 			opts...,
 		)

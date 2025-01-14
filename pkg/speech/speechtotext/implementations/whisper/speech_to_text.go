@@ -99,7 +99,7 @@ func New(
 		params.SetFlashAttn(*cfg.FlashAttn)
 	}
 	params.SetTokenTimestamps(false)
-	params.SetDTWAheadsPreset(whisper.AlignmentAheadsPreset(alignmentAheadPreset))
+	params.SetDTWAheadsPreset(AlignmentAheadsPreset(alignmentAheadPreset).ToWhisper())
 	whisper.Whisper_log_set(func(level whisper.LogLevel, text string) {
 		logger.FromCtx(ctx).Log(logLevelFromWhisper(level), text)
 	})
