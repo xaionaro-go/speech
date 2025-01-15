@@ -1,0 +1,60 @@
+name: rolling-release
+
+on:
+  push:
+    branches:
+      - main
+      - test/ci
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yaml
+  rolling-release:
+    name: rolling-release
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: download stt-linux-amd64-cuda
+        uses: actions/download-artifact@v4
+        with:
+          name: stt-linux-amd64-cuda
+      - name: download stt-linux-amd64
+        uses: actions/download-artifact@v4
+        with:
+          name: stt-linux-amd64
+      - name: download sttd-linux-amd64-cuda
+        uses: actions/download-artifact@v4
+        with:
+          name: sttd-linux-amd64-cuda
+      - name: download sttd-linux-amd64
+        uses: actions/download-artifact@v4
+        with:
+          name: sttd-linux-amd64
+      - name: download subtitleswindow-linux-amd64
+        uses: actions/download-artifact@v4
+        with:
+          name: subtitleswindow-linux-amd64
+      - name: download subtitleswindow-linux-amd64-cuda
+        uses: actions/download-artifact@v4
+        with:
+          name: subtitleswindow-linux-amd64-cuda
+      - name: download subtitleswindow-windows-amd64
+        uses: actions/download-artifact@v4
+        with:
+          name: subtitleswindow-windows-amd64
+      - name: get the timestamp
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d_%H%M%S')"
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: true
+          automatic_release_tag: unstable-${{ steps.date.outputs.date }}
+          files: |
+            stt-linux-amd64-cuda
+            stt-linux-amd64
+            sttd-linux-amd64-cuda
+            sttd-linux-amd64
+            subtitleswindow-linux-amd64-cuda
+            subtitleswindow-linux-amd64
+            subtitleswindow-windows-amd64

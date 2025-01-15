@@ -67,7 +67,7 @@ BUILD_DATE_STRING?=$(shell date +%s)
 
 LINKER_FLAGS?=-X=github.com/xaionaro-go/buildvars.GitCommit=$(GIT_COMMIT) -X=github.com/xaionaro-go/buildvars.Version=$(VERSION_STRING) -X=github.com/xaionaro-go/buildvars.BuildDateString=$(BUILD_DATE_STRING)
 
-WINDOWS_EXTLINKER_FLAGS?=-L$(PWD)/thirdparty/windows/portaudio-binaries/ -L$(PWD)/thirdparty/windows/amd64/ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0/lib
+WINDOWS_EXTLINKER_FLAGS?=-L$(PWD)/thirdparty/windows/portaudio-binaries/ -L$(PWD)/thirdparty/windows/amd64/ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0/lib -L$(PWD)/thirdparty/windows/amd64/cuda_12.2/libcublas/cublas_dev/lib/x64/ -L$(PWD)/thirdparty/windows/amd64/cuda_12.2/cuda_cudart/cudart/lib/x64/ -L$(PWD)/thirdparty/windows/amd64/whisper/ -lwhisper
 
 LINKER_FLAGS_ANDROID?=$(LINKER_FLAGS)
 LINKER_FLAGS_DARWIN?=$(LINKER_FLAGS)
@@ -99,7 +99,7 @@ signer-sign-streampanel-arm64-apk: priv/android-apk.keystore
 
 deps: thirdparty/whisper.cpp/CMakeLists.txt pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI)
 
-windows-deps: thirdparty/windows/portaudio-binaries/libportaudio.dylib thirdparty/portaudio/include/portaudio.h thirdparty/windows/amd64/ready
+windows-deps: pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc thirdparty/windows/portaudio-binaries/libportaudio.dylib thirdparty/portaudio/include/portaudio.h thirdparty/windows/amd64/ready
 
 thirdparty/windows/portaudio-binaries/libportaudio.dylib:
 	rm -rf thirdparty/windows/portaudio-binaries
@@ -111,7 +111,9 @@ thirdparty/portaudio/include/portaudio.h:
 
 thirdparty/windows/amd64/ready:
 	mkdir -p thirdparty/windows/amd64
-	sh -c 'cd thirdparty/windows/amd64 && wget https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2024-04-30-12-51/ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0.zip && unzip -o ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0.zip && rm -f ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0.zip'
+	sh -c 'cd thirdparty/windows/amd64 && wget -nc -q --show-progress https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2024-04-30-12-51/ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0.zip && unzip -o ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0.zip && rm -f ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0.zip'
+	sh -c 'cd thirdparty/windows/amd64 && wget -nc -q --show-progress https://developer.download.nvidia.com/compute/cuda/12.2.0/local_installers/cuda_12.2.0_536.25_windows.exe && 7z x -y -ocuda_12.2 cuda_12.2.0_536.25_windows.exe && rm -f cuda_12.2.0_536.25_windows.exe'
+	sh -c 'cd thirdparty/windows/amd64 && wget -nc -q --show-progress https://github.com/xaionaro/whisper-prebuilds/releases/download/99b011a9f5e63f71/whisper-cublas-12.2.0-bin-x64.zip && mkdir whisper && cd whisper && unzip ../whisper-cublas-12.2.0-bin-x64.zip && rm -f ../whisper-cublas-12.2.0-bin-x64.zip'
 	touch thirdparty/windows/amd64/ready
 
 pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc:
@@ -145,9 +147,9 @@ subtitleswindow-linux-amd64: build deps
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_LINUX)" -o "$(INSTALL_DEST)" ./cmd/subtitleswindow
 	$(eval undefine INSTALL_DEST)
 
-subtitleswindow-windows-amd64: build deps windows-deps
+subtitleswindow-windows-amd64: build windows-deps
 	$(eval INSTALL_DEST?=build/subtitleswindow-windows-amd64.exe)
-	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) CGO_ENABLED=1 CGO_LDFLAGS="-static" CGO_CFLAGS="$(WINDOWS_CGO_FLAGS)" CC=x86_64-w64-mingw32-gcc GOOS=windows go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_WINDOWS)" -o "$(INSTALL_DEST)" ./cmd/subtitleswindow
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) CGO_ENABLED=1 CGO_LDFLAGS="" CGO_CFLAGS="$(WINDOWS_CGO_FLAGS)" CC=x86_64-w64-mingw32-gcc GOOS=windows go build $(GOBUILD_FLAGS) -ldflags "$(LINKER_FLAGS_WINDOWS)" -o "$(INSTALL_DEST)" ./cmd/subtitleswindow
 	$(eval undefine INSTALL_DEST)
 
 example-stt: stt-$(shell go env GOOS)-$(shell go env GOARCH)

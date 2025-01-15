@@ -1,0 +1,86 @@
+name: build
+on: [workflow_call]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - name: ENABLE_CUDA=true stt-linux-amd64
+            artifact: stt-linux-amd64-cuda
+          - name: stt-linux-amd64
+            artifact: stt-linux-amd64-cpu
+          - name: ENABLE_CUDA=true sttd-linux-amd64
+            artifact: sttd-linux-amd64-cuda
+          - name: sttd-linux-amd64
+            artifact: sttd-linux-amd64-cpu
+          - name: ENABLE_CUDA=true subtitleswindow-linux-amd64
+            artifact: subtitleswindow-linux-amd64-cuda
+          - name: subtitleswindow-linux-amd64
+            artifact: subtitleswindow-linux-amd64-cpu
+          - name: ENABLE_CUDA=true subtitleswindow-windows-amd64
+            artifact: subtitleswindow-windows-amd64-cuda
+          - name: subtitleswindow-windows-amd64
+            artifact: subtitleswindow-windows-amd64-cpu
+    name: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          check-latest: true
+      - name: add ffmpeg7 repo
+        run: sudo add-apt-repository -y ppa:ubuntuhandbook1/ffmpeg7
+      - name: add nvidia repo
+        run: |
+          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb && \
+            sudo dpkg -i cuda-keyring_1.1-1_all.deb && \
+            sudo apt-get update \
+      - name: install fyne
+        run: go install fyne.io/fyne/v2/cmd/fyne@latest
+      - name: install libtinfo5
+        run: |
+          wget http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb && \
+            sudo apt install ./libtinfo5_6.3-2ubuntu0.1_amd64.deb
+      - name: apt install
+        run: |
+          sudo apt install -fy \
+            libavcodec-dev \
+            libavformat-dev \
+            libavfilter-dev \
+            libavdevice-dev \
+            libswscale-dev \
+            libsrt-openssl-dev \
+            libssl-dev \
+            libasound2-dev \
+            libxxf86vm-dev \
+            make \
+            cmake \
+            nvidia-cuda-toolkit \
+            cuda-toolkit-12-2 \
+            libxcursor-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxi-dev \
+            gcc-mingw-w64-x86-64-win32 \
+            g++-mingw-w64-x86-64-win32 \
+      - name: apt clean
+        run: sudo apt clean
+      - name: install libfvad
+        run: |
+          git clone https://github.com/dpirch/libfvad
+          cd libfvad
+          autoreconf -fi
+          ./configure
+          make
+          sudo make install
+      - name: make ${{ matrix.target.name }}
+        run: make ${{ matrix.target.name }} INSTALL_DEST=build/${{ matrix.target.artifact }}
+      - name: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target.artifact }}
+          path: build/${{ matrix.target.artifact }}
