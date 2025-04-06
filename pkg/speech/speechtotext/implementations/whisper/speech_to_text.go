@@ -36,7 +36,6 @@ const (
 	DiscardFromSingleIterationIfBufferBigger = 10 * time.Second
 	IterationInterval                        = time.Second
 	PreserveHeadingDuration                  = time.Second
-	VADMinVoiceDuration                      = 150 * time.Millisecond
 
 	EntropyMin            = 3.63
 	EntropyDetectorLenMin = 80
@@ -64,11 +63,13 @@ type SpeechToText struct {
 	NoUsefulSegmentsIterations uint
 	ModelHash                  [sha1.Size]byte
 
-	VAD          vad.VAD
-	VADThreshold float64
-	VADBuffer    []byte
+	VAD                  vad.VAD
+	VADThreshold         float64
+	VADBuffer            []byte
+	VADCheckedUntilBytes uint64
+	VADVoiceIsFound      bool
 
-	VADCacheVoiceFoundAt time.Duration
+	LastLanguageDetected speech.Language
 
 	LastSegmentString  string
 	LastSegmentStartTS time.Duration
@@ -441,7 +442,7 @@ func (stt *SpeechToText) writeSegmentNoLock(
 		Stability:           0,
 		NoSpeechProbability: s.NoSpeechProb,
 		AudioChannelNum:     stt.AudioChannelsNoErr(),
-		Language:            speech.Language(whisper.Whisper_lang_str(stt.Context.DefaultLangId())),
+		Language:            stt.LastLanguageDetected,
 		IsFinal:             isFinal,
 	}
 
@@ -487,7 +488,7 @@ func (stt *SpeechToText) checkIfVoiceActive(
 	ctx context.Context,
 	buf []byte,
 ) (_ret0 bool, _ret1 time.Duration, _err error) {
-	logger.Tracef(ctx, "checkIfVoiceActive")
+	logger.Tracef(ctx, "checkIfVoiceActive: len(buf):%d", len(buf))
 	defer func() { logger.Tracef(ctx, "/checkIfVoiceActive: %v %v %v", _ret0, _ret1, _err) }()
 
 	vadChannels, err := stt.VAD.Channels(ctx)
@@ -610,36 +611,42 @@ func (stt *SpeechToText) commitAudio(
 	committingPos := getDurationFromBytes(stt.CommittingPosBytes)
 	logger.Debugf(
 		ctx,
-		"stt.VADThreshold > 0 && stt.CommittingPos > stt.VADCacheAlreadyHasVoice: %v > 0 && %v>%v: %v",
-		stt.VADThreshold, committingPos, stt.VADCacheVoiceFoundAt,
-		stt.VADThreshold > 0 && committingPos > stt.VADCacheVoiceFoundAt,
+		"stt.VADThreshold > 0 && stt.CommittingPos > stt.VADCacheAlreadyHasVoice: %v > 0 && (%v>%v || !%v): %v",
+		stt.VADThreshold, stt.CommittingPosBytes, stt.VADCheckedUntilBytes,
+		stt.VADVoiceIsFound,
+		stt.VADThreshold > 0 && (stt.CommittingPosBytes > stt.VADCheckedUntilBytes || !stt.VADVoiceIsFound),
 	)
-	if stt.VADThreshold > 0 && getDurationFromBytes(stt.CommittingPosBytes) > stt.VADCacheVoiceFoundAt {
+	if stt.VADThreshold > 0 && (stt.CommittingPosBytes > stt.VADCheckedUntilBytes || !stt.VADVoiceIsFound) {
+		logger.Debugf(ctx, "len(buf) == %d", len(buf))
+		if stt.VADCheckedUntilBytes < stt.CommittingPosBytes {
+			stt.VADCheckedUntilBytes = stt.CommittingPosBytes
+		}
 		voiceIsActive, foundAt, err := stt.checkIfVoiceActive(
 			belt.WithField(ctx, "subsystem", "VAD"),
-			buf,
+			buf[stt.VADCheckedUntilBytes-stt.CommittingPosBytes:],
 		)
 		if err != nil {
 			logger.Errorf(ctx, "VAD: unable to detect if voice is active: %v", err)
 		}
+		stt.VADVoiceIsFound = voiceIsActive
 		if !voiceIsActive {
+			stt.VADCheckedUntilBytes = stt.CommittingPosBytes + uint64(len(buf)) - getBytesPos(VADKeepContext)
 			discardBuffer()
 			return nil
 		}
-		stt.VADCacheVoiceFoundAt = getDurationFromBytes(stt.CommittingPosBytes) + foundAt
+		stt.VADCheckedUntilBytes = stt.CommittingPosBytes + getBytesPos(foundAt)
 
-		shouldCutAway := stt.VADCacheVoiceFoundAt - PreserveHeadingDuration - committingPos
+		shouldCutAway := int64(stt.VADCheckedUntilBytes) - int64(getBytesPos(PreserveHeadingDuration)) - int64(getBytesPos(committingPos))
 		logger.Debugf(ctx, "VAD: shouldCutAway == %v", shouldCutAway)
 		if shouldCutAway > 0 {
-			logger.Debugf(ctx, "VAD: cutting away %s from the beginning (%s -> %s)", shouldCutAway, bufferEndTSDiff, bufferEndTSDiff-shouldCutAway)
-			bytesDiff := getBytesPos(shouldCutAway)
-			stt.CommittingPosBytes += uint64(bytesDiff)
-			if int(bytesDiff) >= len(buf) {
-				logger.Errorf(ctx, "VAD: we removed the whole buffer; this was supposed to be impossible (we should preserve at least PreserveHeadingDuration): %d >= %d", int(bytesDiff), len(buf))
+			logger.Debugf(ctx, "VAD: cutting away %s from the beginning (%s -> %s)", getDurationFromBytes(uint64(shouldCutAway)), bufferEndTSDiff, bufferEndTSDiff-getDurationFromBytes(uint64(shouldCutAway)))
+			stt.CommittingPosBytes += uint64(shouldCutAway)
+			if int(shouldCutAway) >= len(buf) {
+				logger.Errorf(ctx, "VAD: we removed the whole buffer; this was supposed to be impossible (we should preserve at least PreserveHeadingDuration): %d >= %d", int(shouldCutAway), len(buf))
 				stt.NoUsefulSegmentsIterations = 0
 				return nil
 			}
-			buf = buf[bytesDiff:]
+			buf = buf[shouldCutAway:]
 		}
 	}
 
@@ -676,8 +683,27 @@ func (stt *SpeechToText) commitAudio(
 		commitTime,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to build a transcription: %w", err)
 	}
+
+	langProbs := make([]float32, whisper.Whisper_lang_max_id()+1)
+	whisper.Whisper_lang_auto_detect(stt.Context, 0, stt.Params.NumThreads(), langProbs)
+	langDetectTime := time.Since(startCommittingTS)
+	likelyLangID := -1
+	maxProb := float32(0)
+	for langID, langProb := range langProbs {
+		if langProb > maxProb {
+			likelyLangID = langID
+			maxProb = langProb
+		}
+	}
+	lang := speech.Language(whisper.Whisper_lang_str(likelyLangID))
+	logger.Debugf(
+		ctx,
+		"finished detecting the language, total time (with STT) is %v; resulting language: %v",
+		langDetectTime, lang,
+	)
+	stt.LastLanguageDetected = lang
 
 	numSegments := stt.Context.NumSegments()
 	logger.Debugf(ctx, "numSegments == %d", numSegments)

@@ -3,19 +3,18 @@ package subtitleswindow
 import (
 	"context"
 	"fmt"
+	"image/color"
 	"io"
 	"time"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
 	"github.com/facebookincubator/go-belt/tool/logger"
 	"github.com/hashicorp/go-multierror"
-	syswhisper "github.com/mutablelogic/go-whisper/sys/whisper"
 	"github.com/xaionaro-go/observability"
 	"github.com/xaionaro-go/speech/pkg/speech"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/client"
-	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/implementations/whisper/types"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/goconv"
 	"github.com/xaionaro-go/speech/pkg/speech/speechtotext/server/proto/go/speechtotext_grpc"
@@ -28,21 +27,24 @@ const (
 )
 
 type subtitlePiece struct {
-	TS      time.Time
-	Text    string
-	IsFinal bool
+	TS       time.Time
+	Language speech.Language
+	Text     string
+	IsFinal  bool
 }
 
 type speechRecognizer struct {
-	ctx           context.Context
-	textAlignment fyne.TextAlign
-	cancelFunc    context.CancelFunc
-	renderLocker  xsync.Gorex
-	window        *SubtitlesWindow
-	audioInput    io.Reader
-	whisper       speech.ToText
-	subtitles     []subtitlePiece
-	onceCloser    onceCloser
+	ctx               context.Context
+	textAlignment     fyne.TextAlign
+	cancelFunc        context.CancelFunc
+	renderLocker      xsync.Gorex
+	window            *SubtitlesWindow
+	audioInput        io.Reader
+	whisper           speech.ToText
+	subtitles         []subtitlePiece
+	shouldTranslate   bool
+	translateOnlyFrom []speech.Language
+	onceCloser        onceCloser
 }
 
 // audioInput is supposed to be PCM Float32LE 16000Hz 1ch
@@ -55,6 +57,7 @@ func newSpeechRecognizer(
 	whisperModel []byte,
 	language speech.Language,
 	shouldTranslate bool,
+	translateOnlyFrom []speech.Language,
 	vadThreshold float64,
 	window *SubtitlesWindow,
 ) (*speechRecognizer, error) {
@@ -93,16 +96,18 @@ func newSpeechRecognizer(
 
 	ctx, cancelFn := context.WithCancel(ctx)
 	r := &speechRecognizer{
-		ctx:           ctx,
-		textAlignment: textAlignment,
-		cancelFunc:    cancelFn,
-		window:        window,
-		audioInput:    audioInput,
-		whisper:       stt,
+		ctx:               ctx,
+		textAlignment:     textAlignment,
+		cancelFunc:        cancelFn,
+		window:            window,
+		audioInput:        audioInput,
+		whisper:           stt,
+		shouldTranslate:   shouldTranslate,
+		translateOnlyFrom: translateOnlyFrom,
 	}
 	observability.Go(ctx, func() {
 		defer r.Close()
-		err := r.transcriptLoop(ctx)
+		err := r.transcriptLoop(ctx, language)
 		if err != nil && err != context.Canceled {
 			select {
 			case <-ctx.Done():
@@ -163,9 +168,10 @@ func (r *speechRecognizer) audioWriterLoop(
 
 func (r *speechRecognizer) transcriptLoop(
 	ctx context.Context,
+	language speech.Language,
 ) (_err error) {
-	logger.Debugf(ctx, "transcriptLoop()")
-	defer func() { logger.Debugf(ctx, "/transcriptLoop(): %v", _err) }()
+	logger.Debugf(ctx, "transcriptLoop('%s')", language)
+	defer func() { logger.Debugf(ctx, "/transcriptLoop('%s'): %v", language, _err) }()
 
 	t := time.NewTicker(time.Second)
 	defer t.Stop()
@@ -180,6 +186,40 @@ func (r *speechRecognizer) transcriptLoop(
 		case transcript, ok := <-ch:
 			if !ok {
 				return fmt.Errorf("the whisper client is closed")
+			}
+
+			logger.Debugf(ctx, "r.shouldTranslate == %t", r.shouldTranslate)
+			if r.shouldTranslate {
+				if r.translateOnlyFrom != nil {
+					found := false
+					for _, lang := range r.translateOnlyFrom {
+						logger.Debugf(
+							ctx,
+							"transcript.Language.Family() == language.Family(): %v == %v: %t",
+							transcript.Language.Family(), language.Family(),
+							transcript.Language.Family() == language.Family(),
+						)
+						if transcript.Language.Family() == lang.Family() {
+							found = true
+							break
+						}
+					}
+					if !found {
+						logger.Debugf(ctx, "we are expected to print only translations from %v, but this is '%s'", r.translateOnlyFrom, transcript.Language)
+						continue
+					}
+				} else {
+					logger.Debugf(
+						ctx,
+						"transcript.Language.Family() == language.Family(): %v == %v: %t",
+						transcript.Language.Family(), language.Family(),
+						transcript.Language.Family() == language.Family(),
+					)
+					if transcript.Language.Family() == language.Family() {
+						logger.Debugf(ctx, "we are expected to print only translations, but this is already '%s'", transcript.Language)
+						continue
+					}
+				}
 			}
 			err := r.addTranscript(ctx, transcript)
 			if err != nil {
@@ -205,9 +245,10 @@ func (r *speechRecognizer) addTranscript(
 		variant := transcript.Variants[0]
 		text := variant.Text
 		resultingPiece := subtitlePiece{
-			TS:      time.Now(),
-			Text:    string(text),
-			IsFinal: transcript.IsFinal,
+			TS:       time.Now(),
+			Language: transcript.Language,
+			Text:     string(text),
+			IsFinal:  transcript.IsFinal,
 		}
 
 		if len(r.subtitles) > 0 && !r.subtitles[len(r.subtitles)-1].IsFinal {
@@ -232,55 +273,72 @@ func (r *speechRecognizer) render(
 	defer func() { logger.Debugf(ctx, "/render(ctx)") }()
 
 	r.renderLocker.Do(ctx, func() {
-		var lines []widget.RichTextSegment
+		var cObjs []fyne.CanvasObject
 		for _, piece := range r.subtitles {
-			if piece.TS.After(time.Now().Add(-timeout)) {
-				var style widget.RichTextStyle
-				if piece.IsFinal {
-					style = widget.RichTextStyle{
-						Alignment: r.textAlignment,
-						ColorName: theme.ColorNameForeground,
-						Inline:    false,
-						SizeName:  theme.SizeNameHeadingText,
-						TextStyle: fyne.TextStyle{
-							Bold:      false,
-							Italic:    false,
-							Monospace: false,
-							Symbol:    false,
-							TabWidth:  0,
-							Underline: false,
-						},
-					}
-				} else {
-					style = widget.RichTextStyle{
-						Alignment: r.textAlignment,
-						ColorName: theme.ColorNameHyperlink,
-						Inline:    false,
-						SizeName:  theme.SizeNameHeadingText,
-						TextStyle: fyne.TextStyle{
-							Bold:      false,
-							Italic:    false,
-							Monospace: false,
-							Symbol:    false,
-							TabWidth:  0,
-							Underline: false,
-						},
-					}
-				}
-				logger.Debugf(ctx, "resultText[%d] = '%s'", len(lines), piece.Text)
-				lines = append(lines, &widget.TextSegment{
-					Style: style,
-					Text:  piece.Text,
-				})
+			if !piece.TS.After(time.Now().Add(-timeout)) {
+				continue
 			}
+			logger.Debugf(ctx, "resultText[%d] = '%s'", len(cObjs), piece.Text)
+			cObjs = append(cObjs, r.generateLine(ctx, piece.Language, piece.Text, piece.IsFinal)...)
+		}
+		if r.shouldTranslate && len(cObjs) > 0 {
+			cObjs = append(r.generateLine(ctx, "", "Auto-translation:", true), cObjs...)
 		}
 
-		textObj := widget.NewRichText(lines...)
-		textObj.Wrapping = fyne.TextWrapWord
-		r.window.Container.RemoveAll()
-		r.window.Container.Add(textObj)
-		r.window.Container.Refresh()
+		textContainer := container.NewVBox(cObjs...)
+		textContainer.Resize(r.window.Canvas().Size())
+		background := canvas.NewRectangle(color.Gray{Y: 0})
+		r.window.SetContent(
+			container.NewStack(
+				background,
+				textContainer,
+			),
+		)
 	})
+}
+
+func (r *speechRecognizer) generateLine(
+	ctx context.Context,
+	language speech.Language,
+	text string,
+	isFinal bool,
+) []fyne.CanvasObject {
+	foregroundColor := color.RGBA{255, 255, 255, 255}
+	if !isFinal {
+		foregroundColor = color.RGBA{255, 0, 128, 255}
+	}
+
+	langFamily := language.Family()
+	if len(langFamily) > 0 {
+		text = fmt.Sprintf("%s [%s]", text, langFamily)
+	}
+
+	const fontSize = 32
+
+	var layouts []fyne.CanvasObject
+	for text != "" {
+		var objs []fyne.CanvasObject
+		nextLineText := ""
+		fgText := canvas.NewText(text, foregroundColor)
+		for {
+			fgText.TextSize = fontSize
+			if fgText.MinSize().Width <= r.window.Canvas().Size().Width-20 {
+				break
+			}
+			nextLineText = fgText.Text[len(fgText.Text)-1:len(fgText.Text)] + nextLineText
+			fgText.Text = fgText.Text[:len(fgText.Text)-1]
+		}
+		logger.Tracef(ctx, "text = '%s', nextLineText = '%s'", fgText.Text, nextLineText)
+		background := canvas.NewRectangle(color.RGBA{255, 0, 128, 64})
+		background.Resize(fgText.MinSize())
+
+		objs = append(objs, background)
+		objs = append(objs, fgText)
+		layout := container.NewWithoutLayout(objs...)
+		layouts = append(layouts, layout)
+		text = nextLineText
+	}
+	return layouts
 }
 
 func (r *speechRecognizer) Close() error {
@@ -296,28 +354,4 @@ func (r *speechRecognizer) Close() error {
 		}
 	})
 	return mErr.ErrorOrNil()
-}
-
-func initLocalSTT(
-	ctx context.Context,
-	gpu int,
-	whisperModel []byte,
-	language speech.Language,
-	shouldTranslate bool,
-	vadThreshold float64,
-) (speech.ToText, error) {
-	var opts whisper.Options
-	if gpu >= 0 {
-		opts = append(opts, whisper.OptionGPUDeviceID(gpu))
-	}
-	return whisper.New(
-		ctx,
-		whisperModel,
-		language,
-		types.SamplingStrategyBreamSearch,
-		shouldTranslate,
-		syswhisper.AlignmentAheadsPresetNone,
-		vadThreshold,
-		opts...,
-	)
 }

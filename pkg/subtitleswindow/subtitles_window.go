@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/container"
 
 	"github.com/facebookincubator/go-belt/tool/logger"
 	"github.com/hashicorp/go-multierror"
@@ -16,7 +15,6 @@ import (
 
 type SubtitlesWindow struct {
 	fyne.Window
-	Container        *fyne.Container
 	speechRecognizer *speechRecognizer
 	wg               sync.WaitGroup
 	onceCloser       onceCloser
@@ -34,22 +32,21 @@ func New(
 	whisperModel []byte,
 	language speech.Language,
 	shouldTranslate bool,
+	translateOnlyFrom []speech.Language,
 	vadThreshold float64,
 ) (_ret *SubtitlesWindow, _err error) {
-	logger.Debugf(ctx, "New(ctx, app, '%s', audioInput, len:%d)", title, len(whisperModel))
+	logger.Debugf(ctx, "New(ctx, app, '%s', audioInput, len:%d, translateOnlyFrom:%v)", title, len(whisperModel), translateOnlyFrom)
 	defer func() {
-		logger.Debugf(ctx, "/New(ctx, app, '%s', audioInput, len:%d): %#+v %#+v", title, len(whisperModel), _ret, _err)
+		logger.Debugf(ctx, "/New(ctx, app, '%s', audioInput, len:%d, translateOnlyFrom:%v): %#+v %#+v", title, len(whisperModel), translateOnlyFrom, _ret, _err)
 	}()
 
 	w := &SubtitlesWindow{}
 
-	w.Container = container.NewStack()
 	w.Window = app.NewWindow(title)
-	w.Window.SetContent(container.NewVScroll(w.Container))
 	w.Window.Resize(fyne.NewSize(960, 600))
 
 	var err error
-	w.speechRecognizer, err = newSpeechRecognizer(ctx, textAlignment, audioInput, remoteAddrWhisper, gpu, whisperModel, language, shouldTranslate, vadThreshold, w)
+	w.speechRecognizer, err = newSpeechRecognizer(ctx, textAlignment, audioInput, remoteAddrWhisper, gpu, whisperModel, language, shouldTranslate, translateOnlyFrom, vadThreshold, w)
 	logger.Debugf(ctx, "newSpeechRecognizer(): %#+v %#+v", w.speechRecognizer, err)
 	if err != nil {
 		w.Window.Close()

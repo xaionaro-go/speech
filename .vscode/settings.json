@@ -1,6 +1,0 @@
-{
-    "go.toolsEnvVars": {
-        "PKG_CONFIG_PATH": "${workspaceFolder}/pkg/speech/speechtotext/implementations/whisper/pkgconfig/"
-    },
-    "cmake.sourceDirectory": "/home/streaming/go/src/github.com/xaionaro-go/speech/thirdparty/whisper.cpp/examples/quantize"
-}

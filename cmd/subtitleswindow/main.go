@@ -35,11 +35,12 @@ func main() {
 	pflag.Var(&loggerLevel, "log-level", "Log level")
 	langFlag := pflag.String("language", "en-US", "")
 	shouldTranslateFlag := pflag.Bool("translate", false, "")
+	translateOnlyFromFlag := pflag.StringSlice("translate-only-from", nil, "")
 	netPprofAddr := pflag.String("net-pprof-listen-addr", "", "an address to listen for incoming net/pprof connections")
 	playbackFlag := pflag.Bool("audio-loopback", false, "[debug] instead of running a subtitles window, playback the audio")
 	remoteFlag := pflag.String("remote-addr", "", "use a remote speech-to-text engine, instead of running it locally")
 	textAlignmentFlag := pflag.String("text-align", "center", "allowed values: left, center, right")
-	vadThreshold := pflag.Float64("vad-threshold", 0.5, "set to <=0 to disable VAD")
+	vadThreshold := pflag.Float64("vad-threshold", 0.99, "set to <=0 to disable VAD")
 	gpuFlag := pflag.Int("gpu", -1, "")
 	pflag.Parse()
 	if pflag.NArg() < 1 || pflag.NArg() > 2 {
@@ -127,8 +128,26 @@ func main() {
 		os.Exit(0)
 	}
 
+	var translateOnlyFrom []speech.Language
+	for _, lang := range *translateOnlyFromFlag {
+		translateOnlyFrom = append(translateOnlyFrom, speech.Language(lang))
+	}
+
 	app := app.New()
-	w, err := subtitleswindow.New(ctx, app, "Subtitles", textAlignment, audioInput, *remoteFlag, *gpuFlag, whisperModel, speech.Language(*langFlag), *shouldTranslateFlag, *vadThreshold)
+	w, err := subtitleswindow.New(
+		ctx,
+		app,
+		"Subtitles",
+		textAlignment,
+		audioInput,
+		*remoteFlag,
+		*gpuFlag,
+		whisperModel,
+		speech.Language(*langFlag),
+		*shouldTranslateFlag,
+		translateOnlyFrom,
+		*vadThreshold,
+	)
 	if err != nil {
 		panic(err)
 	}
