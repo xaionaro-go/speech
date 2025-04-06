@@ -71,14 +71,14 @@ BUILD_DATE_STRING?=$(shell date +%s)
 
 LINKER_FLAGS?=-X=github.com/xaionaro-go/buildvars.GitCommit=$(GIT_COMMIT) -X=github.com/xaionaro-go/buildvars.Version=$(VERSION_STRING) -X=github.com/xaionaro-go/buildvars.BuildDateString=$(BUILD_DATE_STRING)
 
-WINDOWS_EXTLINKER_FLAGS?=-L$(PWD)/thirdparty/windows/portaudio-binaries/ -L$(PWD)/thirdparty/windows/amd64/ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0/lib -L$(PWD)/thirdparty/windows/amd64/cuda_12.2/libcublas/cublas_dev/lib/x64/ -L$(PWD)/thirdparty/windows/amd64/cuda_12.2/cuda_cudart/cudart/lib/x64/ -L$(PWD)/thirdparty/windows/amd64/whisper/ -lwhisper
+WINDOWS_EXTLINKER_FLAGS?=-L$(PWD)/thirdparty/windows/portaudio-binaries/ -L$(PWD)/thirdparty/windows/amd64/ffmpeg-n7.0-21-gfb8f0ea7b3-win64-gpl-shared-7.0/lib -L$(PWD)/thirdparty/windows/amd64/cuda_12.2/libcublas/cublas_dev/lib/x64/ -L$(PWD)/thirdparty/windows/amd64/cuda_12.2/cuda_cudart/cudart/lib/x64/ -L$(PWD)/thirdparty/windows/amd64/whisper/ -lwhisper -L$(PWD)/thirdparty/rnnoise/.libs
 
 LINKER_FLAGS_ANDROID?=$(LINKER_FLAGS)
 LINKER_FLAGS_DARWIN?=$(LINKER_FLAGS)
 LINKER_FLAGS_LINUX?=$(LINKER_FLAGS)
 LINKER_FLAGS_WINDOWS?=$(LINKER_FLAGS) '-extldflags=$(WINDOWS_EXTLINKER_FLAGS)'
 
-PKG_CONFIG_PATH:="$(PWD)"/pkg/speech/speechtotext/implementations/whisper/pkgconfig/:"$(PKG_CONFIG_PATH)"
+PKG_CONFIG_PATH:="$(PWD)"/pkg/speech/speechtotext/implementations/whisper/pkgconfig/:"$(PWD)"/thirdparty/rnnoise/:"$(PKG_CONFIG_PATH)"
 WINDOWS_CGO_FLAGS?=-I$(PWD)/thirdparty/portaudio/include/
 
 ifeq ($(GOVERSION_GE_1_23),true) # see https://github.com/wlynxg/anet/?tab=readme-ov-file#how-to-build-with-go-1230-or-later
@@ -101,7 +101,7 @@ priv/android-apk.keystore:
 signer-sign-streampanel-arm64-apk: priv/android-apk.keystore
 	jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 -keystore priv/android-apk.keystore build/streampanel-arm64.apk streampanel
 
-deps: thirdparty/whisper.cpp/CMakeLists.txt pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI)
+deps: thirdparty/whisper.cpp/CMakeLists.txt pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)-BLAS_$(ENABLE_BLAS)-CANN_$(ENABLE_CANN)-OPENVINO_$(ENABLE_OPENVINO)-COREML_$(ENABLE_COREML)-ANDROIDABI_$(ANDROID_ABI) thirdparty/rnnoise/rnnoise.pc
 
 windows-deps: pkg/speech/speechtotext/implementations/whisper/pkgconfig/libwhisper.pc thirdparty/windows/portaudio-binaries/libportaudio.dylib thirdparty/portaudio/include/portaudio.h thirdparty/windows/amd64/ready
 
@@ -130,6 +130,13 @@ thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABL
 	rm -f thirdparty/whisper.cpp/build/libwhisper-ready*
 	touch thirdparty/whisper.cpp/build/libwhisper-ready-CUDA_$(ENABLE_CUDA)-VULKAN_$(ENABLE_VULKAN)
 
+
+thirdparty/rnnoise/rnnoise.pc:
+	git submodule update --init
+	cd thirdparty/rnnoise && \
+		./autogen.sh && \
+		CFLAGS=-march=native ./configure && \
+		make -j "$(JOBS)"
 
 sttd-linux-amd64: build deps
 	$(eval INSTALL_DEST?=build/sttd-linux-amd64)
