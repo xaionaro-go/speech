@@ -9,7 +9,7 @@ ENABLE_BLAS?=false
 ENABLE_CANN?=false
 ENABLE_OPENVINO?=false
 ENABLE_COREML?=false
-ENABLE_RNNOISE?=true
+ENABLE_RNNOISE?=false
 JOBS?=$(shell nproc)
 
 GOTAGS?=

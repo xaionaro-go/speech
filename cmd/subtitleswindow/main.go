@@ -83,6 +83,9 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		if len(whisperModel) == 0 {
+			panic("whisper model file is empty")
+		}
 	}
 
 	audioEnc := consts.AudioEncoding()

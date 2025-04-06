@@ -88,6 +88,10 @@ func New(
 	vadThreshold float64,
 	opts ...Option,
 ) (*SpeechToText, error) {
+	if len(modelBytes) == 0 {
+		return nil, fmt.Errorf("the model is empty")
+	}
+
 	cfg := Options(opts).config()
 	params := whisper.DefaultContextParams()
 	if cfg.UseGPU != nil {
