@@ -13,11 +13,11 @@ import (
 
 const (
 	VADMinVoiceDuration = 150 * time.Millisecond
-	VADKeepContext = time.Second
+	VADKeepContext      = time.Second
 )
 
 func (stt *SpeechToText) newVAD(
-	_ context.Context,
+	ctx context.Context,
 ) (vad.VAD, error) {
 	logger.Debugf(ctx, "newVAD:libfvad")
 	return libfvad.NewVAD(16000, 3)

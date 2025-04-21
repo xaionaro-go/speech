@@ -19,7 +19,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/xaionaro-go/audio v0.0.0-20250210104721-0186fff659b6
 	github.com/xaionaro-go/observability v0.0.0-20250420133500-5c4d2e045932
-	github.com/xaionaro-go/player v0.0.0-20250406134844-da668a6b387f
+	github.com/xaionaro-go/player v0.0.0-20250421232915-e67f90e9baa5
 	github.com/xaionaro-go/xcontext v0.0.0-20250111150717-e70e1f5b299c
 	github.com/xaionaro-go/xsync v0.0.0-20250420144932-1e27f4332d4d
 	google.golang.org/grpc v1.69.2
@@ -28,10 +28,12 @@ require (
 
 require (
 	github.com/go-ng/container v0.0.0-20220615121757-4740bf4bbc52 // indirect
+	github.com/goccy/go-yaml v1.15.13 // indirect
 	github.com/gordonklaus/portaudio v0.0.0-20230709114228-aafa478834f5 // indirect
 	github.com/josharian/fvad v0.0.0-20201126043145-6cba2db1e3b8 // indirect
 	github.com/xaionaro-go/avmediacodec v0.0.0-20250421150856-ddd390422c21 // indirect
 	github.com/xaionaro-go/avpipeline v0.0.0-20250421151226-691631b82df8 // indirect
+	github.com/xaionaro-go/datacounter v1.0.4 // indirect
 	github.com/xaionaro-go/ndk v0.0.0-20250420195304-361bb98583bf // indirect
 	github.com/xaionaro-go/secret v0.0.0-20250111141743-ced12e1082c2 // indirect
 	github.com/xaionaro-go/typing v0.0.0-20221123235249-2229101d38ba // indirect
